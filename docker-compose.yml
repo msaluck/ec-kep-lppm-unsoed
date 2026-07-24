@@ -1,0 +1,24 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: ec-kep-lppm-unsoed-db
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    ports:
+      # Host port is configurable since 3306/3307 are already taken by other
+      # local containers; defaults to 3308 to stay out of their way.
+      - '${DB_PORT:-3308}:3306'
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mariadb_data:

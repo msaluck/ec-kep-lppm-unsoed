@@ -1,0 +1,307 @@
+// Research Ethics Review and Approval System (EC-KEP LPPM UNSOED)
+// Database: Local MariaDB 11.4.5 (accessed via Prisma using the mysql provider)
+// Connection string pattern: mysql://usipetif:PASSWORD@127.0.0.1:3306/db_name
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  RESEARCHER   // Pengusul / Peneliti
+  SECRETARIAT  // Sekretariat KEP
+  CHAIRMAN     // Ketua / Sekretaris KEP
+  REVIEWER     // Tim Penelaah / Rapat Pleno member
+  ADMIN
+}
+
+// Full sequential lifecycle enforced by the workflow diagram. Every value
+// here is actually reachable by an action - no speculative/in-progress
+// markers without a corresponding transition (see PROGRESS.md history for
+// why DRAFT, SECRETARIAT_REVIEW, CHAIRMAN_CLASSIFYING, and CLOSED were
+// removed: none of them had a real trigger in the described workflow).
+enum ApplicationStatus {
+  SUBMITTED                  // Milestone 1
+  RETURNED_INCOMPLETE        // Berkas tidak lengkap -> back to researcher
+  FORWARDED_TO_CHAIRMAN      // Berkas lengkap -> forwarded
+  EXEMPTED_PROCESSING        // Track A: exemption letter being drafted
+  EXPEDITED_ASSIGNED         // Track B: reviewers assigned
+  EXPEDITED_REVIEWING        // Track B: awaiting Sepakat/Tidak sepakat votes
+  FULL_BOARD_SCHEDULING      // Track C: plenary meeting being scheduled
+  FULL_BOARD_MEETING         // Track C: plenary meeting held / clarification
+  PENDING_FINAL_DECISION     // Milestone 5 (5 working-day clock running)
+  APPROVED                   // Persetujuan Etik / Ethical Clearance issued
+  REVISION_REQUIRED          // Saran perbaikan
+  REJECTED                   // Tidak disetujui
+  REVISION_1_SUBMITTED       // Resubmission after first revision request
+  REVISION_2_SUBMITTED       // Resubmission after second revision request
+}
+
+enum ReviewTrack {
+  EXEMPTED
+  EXPEDITED
+  FULL_BOARD
+}
+
+enum PanelType {
+  SAINTEK  // Panel Sains dan Teknologi
+  SOSHUM   // Panel Sosial dan Humaniora
+}
+
+enum ReviewVote {
+  PENDING
+  AGREE      // Sepakat
+  DISAGREE   // Tidak sepakat
+}
+
+enum DecisionType {
+  APPROVED
+  REVISION_NEEDED
+  REJECTED
+}
+
+enum DocumentType {
+  RESEARCH_PROTOCOL        // PP - required at submission
+  INFORMED_CONSENT
+  CV_RESEARCHER
+  SUPPORTING_DOCUMENT
+  EXEMPTION_LETTER          // generated - Track A
+  ETHICAL_CLEARANCE_LETTER  // generated - final approval PDF
+  REVISION_RESPONSE         // researcher's revised documents
+  MEETING_MINUTES
+  OTHER
+}
+
+enum NotificationEvent {
+  APPLICATION_SUBMITTED
+  RETURNED_INCOMPLETE
+  FORWARDED_TO_CHAIRMAN
+  CLASSIFIED
+  REVIEWER_ASSIGNED
+  REVIEW_VOTE_SUBMITTED
+  REVIEW_COMPLETED
+  PLENARY_SCHEDULED
+  FINAL_DECISION_APPROVED
+  FINAL_DECISION_REVISION
+  FINAL_DECISION_REJECTED
+  DEADLINE_REMINDER
+  REVISION_SUBMITTED
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  institution  String?
+  phone        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  applications           Application[]              @relation("ResearcherApplications")
+  secretariatChecks      Application[]               @relation("SecretariatChecks")
+  chairmanDecisions      Application[]               @relation("ChairmanDecisions")
+  reviewAssignments      ReviewAssignment[]
+  uploadedDocuments      Document[]
+  statusChangesActed     ApplicationStatusHistory[]
+  notifications          NotificationLog[]
+  meetingParticipations  MeetingParticipant[]
+
+  @@map("users")
+}
+
+model Application {
+  id                 String            @id @default(cuid())
+  applicationNumber  String            @unique
+  title              String
+  researchType       String?
+  status             ApplicationStatus @default(SUBMITTED)
+  track              ReviewTrack?
+  revisionRound      Int               @default(0) // 0 = original, 1 = Revisi I, 2 = Revisi II
+
+  // Panel selected at submission - both SAINTEK and SOSHUM capture the
+  // fields below; a few document links are panel-specific (see comments).
+  panelType    PanelType?
+  proposerName String? // Nama Pengusul / Ketua Peneliti / Kegiatan Ilmiah
+  institution  String? // Universitas/Institusi as stated on this submission
+
+  // Document fields are external links (e.g. Google Drive), not
+  // locally-uploaded files - a deliberate departure from the Document
+  // model's local-disk pattern used elsewhere, per how this paperwork is
+  // actually collected for these two panels.
+  saintekFormUrl        String? @db.Text // SAINTEK only - Formulir Aplikasi Saintek (Word)
+  soshumFormUrl         String? @db.Text // SOSHUM only - Formulir Aplikasi Telaah Etik (Word)
+  proposalUrl           String? @db.Text // Both - Proposal Penelitian (Pdf)
+  leaderStatementUrl    String? @db.Text // Both - Formulir Pernyataan Ketua Peneliti/Kegiatan Ilmiah (Pdf)
+  conflictOfInterestUrl String? @db.Text // Both - ...terkait Konflik Kepentingan (Pdf)
+  informedConsentUrl    String? @db.Text // SOSHUM only - Lembar Informed Consent (Pdf)
+  researchInstrumentUrl String? @db.Text // SOSHUM only - Instrumen Penelitian
+  supportingDocumentUrl String? @db.Text // Both - Dokumen Pendukung (opsional, Pdf)
+
+  researcherId String
+  researcher   User   @relation("ResearcherApplications", fields: [researcherId], references: [id])
+
+  // Milestone 2 - Secretariat completeness check (2 working days)
+  secretariatCheckedById String?
+  secretariatCheckedBy   User?     @relation("SecretariatChecks", fields: [secretariatCheckedById], references: [id])
+  secretariatDeadline    DateTime?
+  secretariatCheckedAt   DateTime?
+
+  // Milestone 3 - Chairman classification (3 working days)
+  chairmanId             String?
+  chairman               User?     @relation("ChairmanDecisions", fields: [chairmanId], references: [id])
+  classificationDeadline DateTime?
+  classifiedAt           DateTime?
+
+  // Milestone 4 - review processing deadline (max 10 working days)
+  reviewDeadline DateTime?
+
+  // Milestone 5 - final chairman decision (5 working days)
+  finalDecisionDeadline DateTime?
+  decisionType           DecisionType?
+  decisionNotes          String?       @db.Text
+  decidedAt               DateTime?
+
+  // Revision resubmission clock - Revisi I: 10 working days to resubmit;
+  // Revisi II: 5 working days to resubmit. Set when decisionType is set to
+  // REVISION_NEEDED; cleared once the researcher resubmits.
+  resubmissionDeadline DateTime?
+
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  documents         Document[]
+  statusHistory     ApplicationStatusHistory[]
+  reviewAssignments ReviewAssignment[]
+  plenaryMeeting    PlenaryMeeting?
+  notifications     NotificationLog[]
+
+  @@index([status])
+  @@index([researcherId])
+  @@map("applications")
+}
+
+// Full audit trail of every workflow transition, each carrying its own
+// working-day deadline so overdue milestones can be queried/reported on.
+model ApplicationStatusHistory {
+  id            String             @id @default(cuid())
+  applicationId String
+  application   Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fromStatus    ApplicationStatus?
+  toStatus      ApplicationStatus
+  actorId       String?
+  actor         User?              @relation(fields: [actorId], references: [id])
+  notes         String?            @db.Text
+  deadlineAt    DateTime?
+  createdAt     DateTime           @default(now())
+
+  @@index([applicationId])
+  @@map("application_status_history")
+}
+
+// Local-disk file references only (no cloud buckets). filePath is a path
+// relative to UPLOAD_DIR, resolved on the Ubuntu filesystem at read time.
+model Document {
+  id            String       @id @default(cuid())
+  applicationId String
+  application   Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  documentType  DocumentType
+  fileName      String
+  filePath      String
+  fileSize      Int
+  mimeType      String
+  revisionRound Int          @default(0)
+  uploadedById  String
+  uploadedBy    User         @relation(fields: [uploadedById], references: [id])
+  uploadedAt    DateTime     @default(now())
+
+  @@index([applicationId])
+  @@map("documents")
+}
+
+// Track B (Expedited) - individual reviewer votes.
+model ReviewAssignment {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  reviewerId    String
+  reviewer      User        @relation(fields: [reviewerId], references: [id])
+  assignedAt    DateTime    @default(now())
+  deadline      DateTime?
+  vote          ReviewVote  @default(PENDING)
+  comments      String?     @db.Text
+  votedAt       DateTime?
+
+  @@unique([applicationId, reviewerId])
+  @@map("review_assignments")
+}
+
+// Track C (Full Board) - plenary meeting with internal/external members.
+model PlenaryMeeting {
+  id            String      @id @default(cuid())
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  scheduledAt   DateTime
+  location      String?
+  minutesNotes  String?     @db.Text
+  createdAt     DateTime    @default(now())
+
+  participants MeetingParticipant[]
+
+  @@map("plenary_meetings")
+}
+
+model MeetingParticipant {
+  id                  String         @id @default(cuid())
+  meetingId           String
+  meeting             PlenaryMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  userId              String?
+  user                User?          @relation(fields: [userId], references: [id])
+  externalName        String?
+  externalInstitution String?
+  externalEmail       String?
+  isExternal          Boolean        @default(false)
+
+  @@map("meeting_participants")
+}
+
+// Every Resend email attempt, success or failure, is logged here.
+model NotificationLog {
+  id              String              @id @default(cuid())
+  applicationId   String?
+  application     Application?        @relation(fields: [applicationId], references: [id])
+  userId          String?
+  user            User?               @relation(fields: [userId], references: [id])
+  recipientEmail  String
+  event           NotificationEvent
+  channel         String              @default("EMAIL")
+  subject         String
+  status          NotificationStatus  @default(PENDING)
+  resendMessageId String?
+  errorMessage    String?             @db.Text
+  sentAt          DateTime?
+  createdAt       DateTime            @default(now())
+
+  @@index([applicationId])
+  @@map("notification_logs")
+}
