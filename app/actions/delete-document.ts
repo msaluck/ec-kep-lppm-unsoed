@@ -1,12 +1,11 @@
 'use server';
 
-import fs from 'node:fs/promises';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { resolveUploadPath } from '@/lib/storage';
+import { deleteFile } from '@/lib/storage';
 
 const DeleteDocumentInput = z.object({
   documentId: z.string().min(1),
@@ -62,9 +61,9 @@ export async function deleteDocument(
   await prisma.document.delete({ where: { id: document.id } });
 
   try {
-    await fs.unlink(resolveUploadPath(document.filePath));
+    await deleteFile(document.filePath);
   } catch {
-    // File already missing on disk - the DB row is still the source of truth, nothing more to do.
+    // File already missing from storage - the DB row is still the source of truth, nothing more to do.
   }
 
   revalidatePath(`/applications/${document.applicationId}`);

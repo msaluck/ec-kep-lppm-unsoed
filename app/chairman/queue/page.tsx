@@ -46,37 +46,39 @@ export default async function ChairmanQueuePage({ searchParams }: { searchParams
         <div className="empty-state">Tidak ada aplikasi yang menunggu tindakan.</div>
       ) : (
         <>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Nomor</th>
-                <th>Judul</th>
-                <th>Peneliti</th>
-                <th>Status</th>
-                <th>Batas Waktu</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.map((application) => {
-                const deadlineInfo = getCurrentDeadline(application);
-                return (
-                  <tr key={application.id}>
-                    <td>
-                      <Link href={`/applications/${application.id}`}>{application.applicationNumber}</Link>
-                    </td>
-                    <td>{application.title}</td>
-                    <td>{application.researcher.name}</td>
-                    <td>
-                      <StatusBadge status={application.status} />
-                    </td>
-                    <td>
-                      {deadlineInfo && <DeadlineBadge deadline={deadlineInfo.deadline} label={deadlineInfo.label} />}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Nomor</th>
+                  <th>Judul</th>
+                  <th>Peneliti</th>
+                  <th>Status</th>
+                  <th>Batas Waktu</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paged.map((application) => {
+                  const deadlineInfo = getCurrentDeadline(application);
+                  return (
+                    <tr key={application.id}>
+                      <td>
+                        <Link href={`/applications/${application.id}`}>{application.applicationNumber}</Link>
+                      </td>
+                      <td>{application.title}</td>
+                      <td>{application.researcher.name}</td>
+                      <td>
+                        <StatusBadge status={application.status} />
+                      </td>
+                      <td>
+                        {deadlineInfo && <DeadlineBadge deadline={deadlineInfo.deadline} label={deadlineInfo.label} />}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           <Pagination page={page} total={sorted.length} basePath="/chairman/queue" />
         </>
       )}

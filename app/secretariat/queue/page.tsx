@@ -26,30 +26,32 @@ export default async function SecretariatQueuePage({ searchParams }: { searchPar
         <div className="empty-state">Tidak ada aplikasi yang menunggu pemeriksaan.</div>
       ) : (
         <>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Nomor</th>
-                <th>Judul</th>
-                <th>Peneliti</th>
-                <th>Batas Waktu</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applications.map((application) => (
-                <tr key={application.id}>
-                  <td>
-                    <Link href={`/applications/${application.id}`}>{application.applicationNumber}</Link>
-                  </td>
-                  <td>{application.title}</td>
-                  <td>{application.researcher.name}</td>
-                  <td>
-                    <DeadlineBadge deadline={application.secretariatDeadline} label="Batas Pemeriksaan" />
-                  </td>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Nomor</th>
+                  <th>Judul</th>
+                  <th>Peneliti</th>
+                  <th>Batas Waktu</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {applications.map((application) => (
+                  <tr key={application.id}>
+                    <td>
+                      <Link href={`/applications/${application.id}`}>{application.applicationNumber}</Link>
+                    </td>
+                    <td>{application.title}</td>
+                    <td>{application.researcher.name}</td>
+                    <td>
+                      <DeadlineBadge deadline={application.secretariatDeadline} label="Batas Pemeriksaan" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <Pagination page={page} total={total} basePath="/secretariat/queue" />
         </>
       )}

@@ -197,24 +197,26 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
       {application.reviewAssignments.length > 0 && (
         <div className="card">
           <h2>Tim Penelaah</h2>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Nama</th>
-                <th>Suara</th>
-                <th>Komentar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {application.reviewAssignments.map((assignment) => (
-                <tr key={assignment.id}>
-                  <td>{assignment.reviewer.name}</td>
-                  <td>{VOTE_LABELS[assignment.vote]}</td>
-                  <td>{assignment.comments ?? '-'}</td>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Nama</th>
+                  <th>Suara</th>
+                  <th>Komentar</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {application.reviewAssignments.map((assignment) => (
+                  <tr key={assignment.id}>
+                    <td>{assignment.reviewer.name}</td>
+                    <td>{VOTE_LABELS[assignment.vote]}</td>
+                    <td>{assignment.comments ?? '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

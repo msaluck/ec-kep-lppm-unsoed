@@ -44,7 +44,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className="auth-shell">
+    <main id="main-content" className="auth-shell">
       <div className="auth-card">
         <h1>Masuk ke EC-KEP</h1>
         <p className="subtitle">Komisi Etik Penelitian - LPPM Universitas Jenderal Soedirman</p>
@@ -86,6 +86,6 @@ export function LoginForm() {
           Belum punya akun (Peneliti)? <a href="/register">Daftar di sini</a>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

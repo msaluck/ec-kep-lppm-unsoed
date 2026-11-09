@@ -108,7 +108,7 @@ export function ScheduleMeetingForm({
         <div className="field">
           <label>Anggota Eksternal</label>
           {externalRows.map((row, index) => (
-            <div key={index} className="action-row" style={{ marginBottom: 8 }}>
+            <div key={index} className="action-row mb-2">
               <input
                 placeholder="Nama"
                 value={row.name}
@@ -131,7 +131,7 @@ export function ScheduleMeetingForm({
           </button>
         </div>
 
-        <button type="submit" className="btn" disabled={isSubmitting} style={{ marginTop: 16 }}>
+        <button type="submit" className="btn mt-4" disabled={isSubmitting}>
           {isSubmitting ? 'Menjadwalkan...' : 'Jadwalkan Rapat'}
         </button>
       </form>

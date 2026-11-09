@@ -38,7 +38,7 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="auth-shell">
+    <main id="main-content" className="auth-shell">
       <div className="auth-card">
         <h1>Daftar sebagai Peneliti</h1>
         <p className="subtitle">Pendaftaran akun Pengusul untuk pengajuan Kaji Etik Penelitian</p>
@@ -90,6 +90,6 @@ export function RegisterForm() {
           Sudah punya akun? <a href="/login">Masuk di sini</a>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

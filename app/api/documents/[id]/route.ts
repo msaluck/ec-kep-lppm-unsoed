@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import fs from 'node:fs/promises';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { resolveUploadPath } from '@/lib/storage';
+import { readFile } from '@/lib/storage';
 
-// Streams a document straight from the local Ubuntu filesystem after
-// re-running the same authorization rule as the application detail page
-// (owner researcher, Secretariat, Chairman, or an assigned reviewer) -
-// document URLs are otherwise guessable cuids, not access tokens.
+// Streams a document from storage (local disk or Vercel Blob - see
+// lib/storage.ts) after re-running the same authorization rule as the
+// application detail page (owner researcher, Secretariat, Chairman, or an
+// assigned reviewer) - document URLs are otherwise guessable cuids, not
+// access tokens.
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -40,14 +40,14 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   }
 
   try {
-    const fileBuffer = await fs.readFile(resolveUploadPath(document.filePath));
-    return new NextResponse(fileBuffer, {
+    const fileBuffer = await readFile(document.filePath);
+    return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         'Content-Type': document.mimeType,
         'Content-Disposition': `attachment; filename="${document.fileName}"`,
       },
     });
   } catch {
-    return new NextResponse('File not found on disk', { status: 404 });
+    return new NextResponse('File not found in storage', { status: 404 });
   }
 }

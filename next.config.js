@@ -2,8 +2,10 @@
 const nextConfig = {
   // Required for CloudPanel's Node.js site type: produces .next/standalone
   // with a self-contained server.js + minimal node_modules, so the VPS does
-  // not need `next start` or the full node_modules tree at runtime.
-  output: 'standalone',
+  // not need `next start` or the full node_modules tree at runtime. Vercel
+  // manages its own build/runtime format and sets VERCEL=1 during builds,
+  // so this is skipped there.
+  output: process.env.VERCEL ? undefined : 'standalone',
 
   // Research protocols / generated PDFs are read/served from the local
   // Ubuntu filesystem, not next/image's remote loader, so no remotePatterns

@@ -12,37 +12,41 @@ export function DocumentsList({ documents, deletable = false }: { documents: Doc
   if (documents.length === 0) return <p>Belum ada dokumen.</p>;
 
   return (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th>Jenis Dokumen</th>
-          <th>Nama Berkas</th>
-          <th>Revisi</th>
-          <th>Diunggah</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {documents.map((doc) => (
-          <tr key={doc.id}>
-            <td>{doc.documentType.replaceAll('_', ' ')}</td>
-            <td>{doc.fileName}</td>
-            <td>{doc.revisionRound || '-'}</td>
-            <td>{doc.uploadedAt.toLocaleDateString('id-ID')}</td>
-            <td>
-              <a href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer">
-                Unduh
-              </a>
-              {deletable && (
-                <>
-                  {' '}
-                  <DeleteDocumentButton documentId={doc.id} />
-                </>
-              )}
-            </td>
+    <div className="table-scroll">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Jenis Dokumen</th>
+            <th>Nama Berkas</th>
+            <th>Revisi</th>
+            <th>Diunggah</th>
+            <th>
+              <span className="sr-only">Aksi</span>
+            </th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {documents.map((doc) => (
+            <tr key={doc.id}>
+              <td>{doc.documentType.replaceAll('_', ' ')}</td>
+              <td>{doc.fileName}</td>
+              <td>{doc.revisionRound || '-'}</td>
+              <td>{doc.uploadedAt.toLocaleDateString('id-ID')}</td>
+              <td>
+                <a href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer">
+                  Unduh
+                </a>
+                {deletable && (
+                  <>
+                    {' '}
+                    <DeleteDocumentButton documentId={doc.id} />
+                  </>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

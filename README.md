@@ -13,6 +13,7 @@ Research Ethics Review and Approval System for the **Komisi Etik Penelitian (KEP
 - [Seeded accounts](#seeded-accounts)
 - [Available scripts](#available-scripts)
 - [Deployment (CloudPanel VPS)](#deployment-cloudpanel-vps)
+- [Deployment (Vercel)](#deployment-vercel)
 - [Deadline reminders (cron)](#deadline-reminders-cron)
 - [Security notes](#security-notes)
 - [Known limitations](#known-limitations)
@@ -75,8 +76,10 @@ All document fields here are plain URL inputs (e.g. a Google Drive link), not fi
 - **Prisma ORM** targeting **MariaDB** (11.4 locally via Docker; 11.4.5 in production)
 - **NextAuth.js** (Auth.js) v4, Credentials provider against the local `users` table, JWT sessions
 - **Resend** + **React Email** for transactional email (best-effort - failures are logged, never block the workflow)
-- **pdfkit** for server-side PDF generation (Ethical Clearance letter, Exemption letter), written to the local filesystem
-- Plain CSS (`app/globals.css`) - no Tailwind/component library
+- **pdfkit** for server-side PDF generation (Ethical Clearance letter, Exemption letter)
+- **Storage** - dual-mode (`lib/storage.ts`): local disk by default (local dev / CloudPanel VPS, where the filesystem is persistent); automatically switches to **Vercel Blob** when `BLOB_READ_WRITE_TOKEN` is set (Vercel's serverless functions have a read-only, ephemeral filesystem outside `/tmp`, so uploads and generated PDFs can't live on disk there)
+- **Tailwind CSS v4** (CSS-first config, no `tailwind.config.js`) - all styling lives in `app/globals.css`, with every semantic class (`.btn`, `.card`, `.field`, etc.) implemented via `@layer components` + `@apply` under a small set of CSS-variable design tokens. Auto light/dark mode via `prefers-color-scheme`, no toggle needed. Compiles to ~6KB gzipped.
+- **Inter** via `next/font/google` - self-hosted at build time, no external font request, no layout shift
 - **Playwright** (dev dependency) - used for manual end-to-end smoke-test scripts during development, not a committed test suite (see [Known limitations](#known-limitations))
 
 ## Project structure
@@ -104,8 +107,10 @@ prisma/
   migrations/         Versioned SQL migrations
   seed.ts             Provisions Admin/Secretariat/Chairman/2 Reviewers
 scripts/
-  send-deadline-reminders.ts   Cron-ready deadline reminder job
+  send-deadline-reminders.ts   CLI entry point (CloudPanel cron / manual run)
+app/api/cron/reminders/        Vercel Cron entry point - same logic, different trigger
 docker-compose.yml    Local MariaDB 11.4 container
+vercel.json           Vercel Cron schedule (Vercel deployments only)
 ```
 
 Key files under `lib/`:
@@ -118,10 +123,11 @@ Key files under `lib/`:
 | `current-deadline.ts` | Maps an application's status to its currently-active deadline field |
 | `notify.ts` | Send-then-log helper wrapping every Resend call |
 | `finalize-approval.ts` | Shared write-PDF-then-transaction-then-notify sequence used by both approval paths |
-| `documents.ts` | Shared file-upload-to-disk helper |
-| `storage.ts` | Local filesystem path resolution (`UPLOAD_DIR`) |
+| `documents.ts` | Shared file-upload helper (delegates to `storage.ts`) |
+| `storage.ts` | Dual-mode file storage - local disk or Vercel Blob, see [Tech stack](#tech-stack) |
 | `require-session.ts` | Server-component role guard |
 | `revision-policy.ts` | Revision I/II day counts, shared between the decision and resubmission actions |
+| `deadline-reminders.ts` | Deadline-reminder scan/send logic, shared by the CLI script and the Vercel Cron route |
 
 ## Getting started (local development)
 
@@ -225,15 +231,77 @@ Target environment: Ubuntu 24.04, CloudPanel's Node.js site type, **local** Mari
 6. `npm run prisma:seed` once, then change every seeded password immediately.
 7. Start via CloudPanel's Node.js process manager pointing at `.next/standalone/server.js`.
 
+## Deployment (Vercel)
+
+Vercel's serverless functions have a **read-only, ephemeral filesystem** (only `/tmp`, wiped between invocations) and can't reach a database on `127.0.0.1` — the opposite of the CloudPanel VPS this app was originally built for. Three things are handled differently as a result, all already wired up in the codebase:
+
+- **File storage** - `lib/storage.ts` automatically uses **Vercel Blob** instead of local disk whenever `BLOB_READ_WRITE_TOKEN` is set (Step 3 below sets it for you).
+- **Database** - needs a MySQL-compatible database reachable over the internet, not a local one.
+- **Deadline reminders** - runs as a **Vercel Cron** job hitting `/api/cron/reminders` (see `vercel.json`) instead of a crontab entry.
+
+### 1. Provision a database
+
+Any internet-reachable MySQL-compatible database works (e.g. **PlanetScale**, **Railway**, or **Aiven**). Steps for any of them are the same shape:
+
+1. Create a MySQL/MariaDB database instance.
+2. Copy its connection string into the form `mysql://user:password@host:port/database`.
+3. If the provider requires TLS (most do), append the query params it documents, e.g. PlanetScale: `?sslaccept=strict`.
+
+Since a single Vercel deployment can spin up many concurrent serverless function instances, each opening its own Prisma connection, prefer a provider with built-in connection pooling (PlanetScale's proxy does this automatically). If yours doesn't, cap Prisma's own pool via the connection string, e.g. `?connection_limit=5`.
+
+### 2. Push the schema to that database
+
+From your machine, with `DATABASE_URL` in `.env` temporarily pointed at the new production database:
+
+```bash
+npx prisma migrate deploy   # applies prisma/migrations/ to the production DB
+npm run prisma:seed         # creates the initial Admin/Secretariat/Chairman/Reviewer accounts
+```
+
+Change every seeded password immediately after (via `/admin/users/[id]` once the app is live, or directly).
+
+### 3. Create a Vercel Blob store
+
+In the Vercel dashboard: **Storage** tab -> **Create Database** -> **Blob** -> connect it to this project. This automatically adds `BLOB_READ_WRITE_TOKEN` to the project's environment variables, which is all `lib/storage.ts` needs to switch from local disk to Blob.
+
+### 4. Import and configure the project
+
+1. Push this repository to GitHub/GitLab/Bitbucket, then **Import Project** in Vercel and select it (Next.js is auto-detected, no build command changes needed).
+2. Under **Settings -> Environment Variables**, add (Production, and Preview if you want preview deployments to also work):
+
+   | Variable | Value |
+   |---|---|
+   | `DATABASE_URL` | The production connection string from Step 1 |
+   | `NEXTAUTH_URL` | Your Vercel deployment URL, e.g. `https://ec-kep-lppm-unsoed.vercel.app` |
+   | `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
+   | `RESEND_API_KEY` | Your Resend API key |
+   | `RESEND_FROM_EMAIL` | `onboarding@resend.dev` until a sending domain is verified |
+   | `CRON_SECRET` | `openssl rand -base64 32` - Vercel sends this back as `Authorization: Bearer <value>` when it calls the cron route |
+
+   (`BLOB_READ_WRITE_TOKEN` was already added in Step 3 - don't set `UPLOAD_DIR`, it's ignored once Blob is active.)
+3. Deploy. Vercel picks up `vercel.json` automatically and schedules `/api/cron/reminders` once a day (`0 0 * * *` UTC = 07:00 WIB, matching the original CloudPanel cron time) - no extra setup needed. Note: the Hobby plan only allows daily-or-less-frequent cron schedules.
+
+### 5. Verify
+
+- Visit the deployment URL, log in with a seeded account, submit a test application with a real file upload, and confirm it downloads correctly afterward (this exercises the Blob path end to end).
+- `GET https://<your-app>.vercel.app/api/cron/reminders` should return `401 Unauthorized` without the right header - that's correct, it means an outsider can't trigger it. Vercel's own scheduled invocation includes the header automatically.
+
+### Notes for a client trial
+
+- This gets your client a working URL quickly, but it's still pointed at real production-shaped infrastructure (a real database, real file storage) - there's no "toy" mode. Treat any data entered during the trial as real data unless you reset the database afterward.
+- Everything above coexists with the CloudPanel deployment path - `lib/storage.ts` and `next.config.js` both branch on environment (`BLOB_READ_WRITE_TOKEN` / `VERCEL`), so this repo can still be deployed to CloudPanel unchanged later.
+
 ## Deadline reminders (cron)
 
-`scripts/send-deadline-reminders.ts` scans for applications with a deadline that's overdue, due today, or due tomorrow, and emails the right people for that status (Secretariat, Chairman, pending Reviewers, or the Researcher). It dedupes against `notification_logs` so running it more than once a day is harmless.
+The core logic lives in `lib/deadline-reminders.ts`: it scans for applications with a deadline that's overdue, due today, or due tomorrow, and emails the right people for that status (Secretariat, Chairman, pending Reviewers, or the Researcher). It dedupes against `notification_logs` so running it more than once a day is harmless. Two entry points call it, depending on where the app is deployed:
 
-CloudPanel cron entry:
+- **CloudPanel VPS** - `scripts/send-deadline-reminders.ts` (`npm run reminders`), invoked via crontab:
 
-```
-0 7 * * * cd /home/cloudpanel/htdocs/<site> && npm run reminders >> storage/logs/reminders.log 2>&1
-```
+  ```
+  0 7 * * * cd /home/cloudpanel/htdocs/<site> && npm run reminders >> storage/logs/reminders.log 2>&1
+  ```
+
+- **Vercel** - `app/api/cron/reminders/route.ts`, invoked by Vercel Cron per the schedule in `vercel.json` (`CRON_SECRET` gates it against anyone else calling the URL). See [Deployment (Vercel)](#deployment-vercel).
 
 ## Security notes
 

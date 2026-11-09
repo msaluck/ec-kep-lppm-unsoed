@@ -5,7 +5,7 @@ export function PageShell({ title, actions, children }: { title: string; actions
   return (
     <>
       <AppHeader />
-      <main className="page-content">
+      <main id="main-content" tabIndex={-1} className="page-content focus:outline-none">
         <div className="page-title-row">
           <h1>{title}</h1>
           {actions}

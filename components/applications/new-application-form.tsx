@@ -78,7 +78,7 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
           <input id="supportingDocuments" name="supportingDocuments" type="file" multiple />
         </div>
 
-        <h2 style={{ marginTop: 24 }}>
+        <h2 className="mt-6 mb-3 border-t border-(--border) pt-6 text-base font-bold text-(--text)">
           Kelengkapan {panelType === 'SAINTEK' ? 'Panel Sains dan Teknologi' : 'Panel Sosial dan Humaniora'}
         </h2>
 
@@ -156,7 +156,7 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
           <input id="supportingDocumentUrl" name="supportingDocumentUrl" type="url" placeholder="https://drive.google.com/..." />
         </div>
 
-        <button type="submit" className="btn" disabled={isSubmitting} style={{ marginTop: 16 }}>
+        <button type="submit" className="btn mt-4" disabled={isSubmitting}>
           {isSubmitting ? 'Mengirim...' : 'Ajukan Aplikasi'}
         </button>
       </form>

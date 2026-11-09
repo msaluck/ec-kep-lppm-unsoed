@@ -1,16 +1,72 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/*
+ * Semantic color tokens as CSS variables (not Tailwind @theme colors) so a
+ * single prefers-color-scheme block below can re-point every component's
+ * colors at once - component classes reference these via arbitrary-value
+ * utilities (e.g. bg-(--surface)) instead of hardcoded palette classes.
+ * All pairings below are chosen to clear WCAG 2.1 AA contrast (4.5:1 normal
+ * text / 3:1 large text & UI components).
+ */
 :root {
   color-scheme: light;
-  --border: #d9dde3;
-  --text: #1a1d23;
-  --muted: #6b7280;
-  --bg: #f6f7f9;
+
+  --bg: #f8fafc; /* slate-50 */
   --surface: #ffffff;
-  --accent: #1f4d8c;
+  --surface-hover: #f8fafc;
+  --border: #e2e8f0; /* slate-200 */
+  --text: #0f172a; /* slate-900 */
+  --muted: #475569; /* slate-600 - 7.5:1 on white */
+
+  --accent: #4f46e5; /* indigo-600 */
+  --accent-hover: #4338ca; /* indigo-700 */
   --accent-contrast: #ffffff;
-  --error: #b3261e;
-  --error-bg: #fdecea;
-  --success: #1e6b3a;
-  --success-bg: #e9f6ee;
+  --accent-soft-bg: #eef2ff; /* indigo-50 */
+  --accent-soft-text: #4338ca; /* indigo-700 */
+
+  --success: #047857; /* emerald-700 */
+  --success-bg: #ecfdf5; /* emerald-50 */
+  --error: #b91c1c; /* red-700 */
+  --error-bg: #fef2f2; /* red-50 */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --bg: #0b1120;
+    --surface: #131b2e;
+    --surface-hover: #182238;
+    --border: #263049;
+    --text: #e2e8f0; /* slate-200 */
+    --muted: #94a3b8; /* slate-400 - 7:1 on --bg */
+
+    --accent: #818cf8; /* indigo-400 - 8:1+ on dark bg */
+    --accent-hover: #a5b4fc; /* indigo-300 */
+    --accent-contrast: #0b1120;
+    --accent-soft-bg: #1e2247;
+    --accent-soft-text: #c7d2fe; /* indigo-200 */
+
+    --success: #34d399; /* emerald-400 */
+    --success-bg: #0d2b21;
+    --error: #f87171; /* red-400 */
+    --error-bg: #2d1113;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 * {
@@ -19,403 +75,315 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Visible only when focused - keyboard users can jump past the nav. */
+.skip-link {
+  @apply fixed top-2 left-2 z-50 -translate-y-16 rounded-lg bg-(--accent) px-4 py-2 text-sm font-semibold text-(--accent-contrast) transition-transform focus:translate-y-0;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Auth pages                                                             */
+/* ---------------------------------------------------------------------- */
+
 .auth-shell {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  @apply relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-12;
+  background:
+    radial-gradient(60rem 30rem at 15% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent),
+    radial-gradient(50rem 25rem at 110% 10%, color-mix(in srgb, var(--success) 12%, transparent), transparent),
+    var(--bg);
 }
 
 .auth-card {
-  width: 100%;
-  max-width: 420px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 32px;
+  @apply w-full max-w-[440px] rounded-2xl border border-(--border) bg-(--surface) p-8 shadow-xl shadow-slate-900/5;
 }
 
 .auth-card h1 {
-  font-size: 1.25rem;
+  @apply text-xl font-bold tracking-tight text-(--text);
   margin: 0 0 4px;
 }
 
 .auth-card p.subtitle {
-  color: var(--muted);
+  @apply text-sm text-(--muted);
   margin: 0 0 24px;
-  font-size: 0.9rem;
-}
-
-.field {
-  margin-bottom: 16px;
-}
-
-.field label {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.field input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.95rem;
-}
-
-.field input:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-button.submit {
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 8px;
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button.submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.alert {
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  margin-bottom: 16px;
-}
-
-.alert.error {
-  background: var(--error-bg);
-  color: var(--error);
-}
-
-.alert.success {
-  background: var(--success-bg);
-  color: var(--success);
 }
 
 .auth-switch {
-  margin-top: 20px;
-  font-size: 0.85rem;
-  color: var(--muted);
-  text-align: center;
+  @apply mt-5 text-center text-sm text-(--muted);
 }
 
 .auth-switch a {
-  color: var(--accent);
-  font-weight: 600;
-  text-decoration: none;
+  @apply font-semibold text-(--accent) no-underline hover:text-(--accent-hover) hover:underline;
 }
 
-/* Dashboard shell */
+/* ---------------------------------------------------------------------- */
+/* Forms                                                                   */
+/* ---------------------------------------------------------------------- */
 
-.app-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+.field {
+  margin-bottom: 18px;
 }
 
-.app-header-inner {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 14px 24px;
-  display: flex;
-  align-items: center;
-  gap: 24px;
+.field label {
+  @apply mb-1.5 block text-sm font-semibold text-(--text);
 }
 
-.app-brand {
-  font-weight: 700;
-  white-space: nowrap;
+/*
+ * Text-like inputs are styled globally, not scoped to .field, so raw
+ * <input>s outside a labeled .field wrapper (e.g. repeated table-style
+ * rows) still get a consistent look. Checkbox/radio/file keep native
+ * appearance (file gets its own treatment below).
+ */
+input:not([type='checkbox'], [type='radio'], [type='file']),
+textarea,
+select {
+  @apply w-full rounded-lg border border-(--border) bg-(--surface) px-3.5 py-2.5 text-sm text-(--text) transition-colors placeholder:text-(--muted);
 }
 
-.app-nav {
-  display: flex;
-  gap: 16px;
-  flex: 1;
+textarea {
+  @apply resize-y;
+  font-family: inherit;
 }
 
-.app-nav a {
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 600;
-  padding: 6px 0;
+input:not([type='checkbox'], [type='radio'], [type='file']):hover,
+textarea:hover,
+select:hover {
+  @apply border-slate-400;
 }
 
-.app-nav a.active,
-.app-nav a:hover {
-  color: var(--accent);
+input:not([type='checkbox'], [type='radio'], [type='file']):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  @apply border-(--accent) outline-2 outline-offset-1 outline-(--accent);
 }
 
-.app-user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.85rem;
-  white-space: nowrap;
+input:disabled {
+  @apply cursor-not-allowed bg-(--bg) text-(--muted);
 }
 
-.role-tag {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--muted);
+input[type='file'] {
+  @apply w-full cursor-pointer text-sm text-(--muted) file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-(--accent-soft-bg) file:px-3.5 file:py-2 file:text-sm file:font-semibold file:text-(--accent-soft-text) file:transition-colors hover:file:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--accent);
 }
 
-.app-user button {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: 8px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
+/* ---------------------------------------------------------------------- */
+/* Buttons                                                                 */
+/* ---------------------------------------------------------------------- */
 
-.page-content {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 24px;
-}
-
-.page-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.page-title-row h1 {
-  font-size: 1.4rem;
-  margin: 0;
-}
-
+button.submit,
 .btn {
-  display: inline-block;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  @apply inline-flex items-center justify-center gap-2 rounded-lg bg-(--accent) px-4 py-2.5 text-sm font-semibold text-(--accent-contrast) no-underline transition-colors hover:bg-(--accent-hover) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--accent) disabled:cursor-not-allowed disabled:opacity-60;
   cursor: pointer;
-  text-decoration: none;
-  background: var(--accent);
-  color: var(--accent-contrast);
+  border: none;
 }
 
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+button.submit {
+  @apply w-full;
 }
 
 .btn.secondary {
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
+  @apply border border-(--border) bg-(--surface) text-(--text) hover:bg-(--surface-hover);
 }
 
 .btn.danger {
-  background: var(--error);
+  @apply bg-(--error) hover:brightness-110;
 }
 
+/* ---------------------------------------------------------------------- */
+/* Alerts                                                                  */
+/* ---------------------------------------------------------------------- */
+
+.alert {
+  @apply mb-4 rounded-lg border-l-4 px-4 py-3 text-sm;
+}
+
+.alert.error {
+  @apply border-(--error) bg-(--error-bg) text-(--error);
+}
+
+.alert.success {
+  @apply border-(--success) bg-(--success-bg) text-(--success);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Dashboard shell                                                         */
+/* ---------------------------------------------------------------------- */
+
+.app-header {
+  @apply sticky top-0 z-40 border-b border-(--border) bg-(--surface)/85 backdrop-blur-sm;
+}
+
+.app-header-inner {
+  @apply mx-auto flex max-w-5xl flex-wrap items-center gap-4 px-4 py-3 sm:px-6;
+}
+
+.app-brand {
+  @apply whitespace-nowrap text-base font-bold tracking-tight text-(--text);
+}
+
+.app-nav {
+  @apply flex flex-1 flex-wrap gap-1 text-sm;
+}
+
+.app-nav a {
+  @apply rounded-md px-2.5 py-1.5 font-semibold text-(--muted) no-underline transition-colors hover:bg-(--surface-hover) hover:text-(--accent);
+}
+
+.app-nav a.active {
+  @apply bg-(--accent-soft-bg) text-(--accent-soft-text);
+}
+
+.app-user {
+  @apply flex items-center gap-3 whitespace-nowrap text-sm text-(--text);
+}
+
+.role-tag {
+  @apply rounded-full border border-(--border) bg-(--bg) px-2 py-0.5 text-[0.65rem] font-bold tracking-wide text-(--muted) uppercase;
+}
+
+.app-user button {
+  @apply rounded-lg border border-(--border) bg-(--surface) px-3 py-1.5 text-sm font-medium text-(--text) transition-colors hover:bg-(--surface-hover) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--accent);
+  cursor: pointer;
+}
+
+.page-content {
+  @apply mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8;
+}
+
+.page-title-row {
+  @apply mb-6 flex flex-wrap items-center justify-between gap-3;
+}
+
+.page-title-row h1 {
+  @apply text-xl font-bold tracking-tight text-(--text) sm:text-2xl;
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Cards                                                                   */
+/* ---------------------------------------------------------------------- */
+
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
+  @apply mb-5 rounded-2xl border border-(--border) bg-(--surface) p-5 shadow-sm sm:p-6;
 }
 
 .card h2 {
-  font-size: 1.05rem;
+  @apply mb-3 text-base font-bold text-(--text);
   margin: 0 0 12px;
 }
 
+/* ---------------------------------------------------------------------- */
+/* Tables                                                                  */
+/* ---------------------------------------------------------------------- */
+
+.table-scroll {
+  @apply overflow-x-auto rounded-2xl border border-(--border) shadow-sm;
+}
+
+.table-scroll .data-table {
+  @apply rounded-none border-none shadow-none;
+}
+
 table.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
+  @apply w-full border-collapse bg-(--surface);
+  border-radius: 1rem;
 }
 
 table.data-table th,
 table.data-table td {
-  text-align: left;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.9rem;
+  @apply border-b border-(--border) px-3.5 py-2.5 text-left text-sm whitespace-nowrap;
 }
 
 table.data-table th {
-  background: var(--bg);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--muted);
+  @apply bg-(--bg) text-xs font-semibold tracking-wider text-(--muted) uppercase;
 }
 
 table.data-table tbody tr:last-child td {
-  border-bottom: none;
+  @apply border-b-0;
 }
 
-table.data-table tbody tr:hover {
-  background: var(--bg);
+table.data-table tbody tr {
+  @apply transition-colors hover:bg-(--surface-hover);
 }
 
 table.data-table a {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
+  @apply font-semibold text-(--accent) no-underline hover:text-(--accent-hover) hover:underline;
 }
 
+/* ---------------------------------------------------------------------- */
+/* Misc                                                                    */
+/* ---------------------------------------------------------------------- */
+
 .empty-state {
-  color: var(--muted);
-  padding: 24px;
-  text-align: center;
-  background: var(--surface);
-  border: 1px dashed var(--border);
-  border-radius: 12px;
+  @apply rounded-2xl border border-dashed border-(--border) bg-(--surface) px-6 py-10 text-center text-sm text-(--muted);
 }
 
 .badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  white-space: nowrap;
+  @apply inline-block rounded-full border border-(--border) bg-(--bg) px-2.5 py-0.5 text-xs font-bold whitespace-nowrap text-(--muted);
 }
 
-.badge.overdue {
-  background: var(--error-bg);
-  color: var(--error);
-  border-color: transparent;
+.badge.overdue,
+.badge.rejected {
+  @apply border-transparent bg-(--error-bg) text-(--error);
 }
 
 .badge.approved {
-  background: var(--success-bg);
-  color: var(--success);
-  border-color: transparent;
-}
-
-.badge.rejected {
-  background: var(--error-bg);
-  color: var(--error);
-  border-color: transparent;
+  @apply border-transparent bg-(--success-bg) text-(--success);
 }
 
 .detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 24px;
-  font-size: 0.9rem;
+  @apply grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2;
 }
 
 .detail-grid dt {
-  color: var(--muted);
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  @apply text-xs font-semibold tracking-wide text-(--muted) uppercase;
   margin: 0;
 }
 
 .detail-grid dd {
+  @apply mt-0.5 text-(--text);
   margin: 2px 0 0;
 }
 
 .timeline {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 0.88rem;
+  @apply m-0 list-none p-0 text-sm;
 }
 
 .timeline li {
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
+  @apply border-b border-(--border) py-2.5;
 }
 
 .timeline li:last-child {
-  border-bottom: none;
+  @apply border-b-0;
 }
 
 .timeline .timeline-meta {
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.field textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-family: inherit;
-  resize: vertical;
-}
-
-.field select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.95rem;
-  background: var(--surface);
+  @apply text-xs text-(--muted);
 }
 
 .checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
+  @apply mb-2 flex items-center gap-2 text-sm;
+}
+
+.checkbox-row input[type='checkbox'] {
+  @apply size-4 accent-(--accent);
 }
 
 .action-row {
-  display: flex;
-  gap: 12px;
-  margin-top: 8px;
+  @apply mt-2 flex flex-wrap gap-3;
 }
 
 .pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 16px;
-  font-size: 0.85rem;
-  color: var(--muted);
+  @apply mt-5 flex items-center justify-center gap-4 text-sm text-(--muted);
 }
 
 .pagination a {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
+  @apply rounded-md px-2 py-1 font-semibold text-(--accent) no-underline transition-colors hover:bg-(--accent-soft-bg) hover:text-(--accent-hover);
 }
 
 .pagination .disabled {
-  opacity: 0.4;
+  @apply opacity-40;
 }

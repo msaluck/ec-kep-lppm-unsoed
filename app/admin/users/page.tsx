@@ -39,7 +39,7 @@ export default async function AdminUsersPage({
         </Link>
       }
     >
-      <div className="action-row" style={{ marginBottom: 16 }}>
+      <div className="action-row mb-4">
         <Link href="/admin/users" className={!roleFilter ? 'btn' : 'btn secondary'}>
           Semua
         </Link>
@@ -54,32 +54,34 @@ export default async function AdminUsersPage({
         <div className="empty-state">Tidak ada pengguna.</div>
       ) : (
         <>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Nama</th>
-                <th>Email</th>
-                <th>Peran</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>
-                    <Link href={`/admin/users/${user.id}`}>{user.name}</Link>
-                  </td>
-                  <td>{user.email}</td>
-                  <td>{user.role}</td>
-                  <td>
-                    <span className={`badge${user.isActive ? '' : ' rejected'}`}>
-                      {user.isActive ? 'Aktif' : 'Nonaktif'}
-                    </span>
-                  </td>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Nama</th>
+                  <th>Email</th>
+                  <th>Peran</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td>
+                      <Link href={`/admin/users/${user.id}`}>{user.name}</Link>
+                    </td>
+                    <td>{user.email}</td>
+                    <td>{user.role}</td>
+                    <td>
+                      <span className={`badge${user.isActive ? '' : ' rejected'}`}>
+                        {user.isActive ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <Pagination page={page} total={total} basePath={basePath} />
         </>
       )}

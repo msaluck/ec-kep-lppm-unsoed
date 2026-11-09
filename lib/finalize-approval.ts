@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 import type { Application, DocumentType, User } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { sendAndLogNotification } from '@/lib/notify';
-import { writeFileToDisk } from '@/lib/storage';
+import { writeFile } from '@/lib/storage';
 
 type FinalizeApprovalInput = {
   application: Application & { researcher: User };
@@ -28,7 +28,7 @@ export async function finalizeApprovalWithDocument(input: FinalizeApprovalInput)
     input.application.applicationNumber,
     `${input.fileNamePrefix}-${Date.now()}.pdf`,
   );
-  await writeFileToDisk(relativePath, input.pdfBuffer);
+  const storedPath = await writeFile(relativePath, input.pdfBuffer, 'application/pdf');
 
   const document = await prisma.$transaction(async (tx) => {
     await tx.application.update({
@@ -57,7 +57,7 @@ export async function finalizeApprovalWithDocument(input: FinalizeApprovalInput)
         applicationId: input.application.id,
         documentType: input.documentType,
         fileName: path.basename(relativePath),
-        filePath: relativePath,
+        filePath: storedPath,
         fileSize: input.pdfBuffer.byteLength,
         mimeType: 'application/pdf',
         revisionRound: input.application.revisionRound,

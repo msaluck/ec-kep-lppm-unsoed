@@ -26,30 +26,32 @@ export default async function ReviewerAssignmentsPage({ searchParams }: { search
         <div className="empty-state">Tidak ada penugasan telaah yang menunggu suara Anda.</div>
       ) : (
         <>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Nomor</th>
-                <th>Judul</th>
-                <th>Batas Waktu</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assignments.map((assignment) => (
-                <tr key={assignment.id}>
-                  <td>
-                    <Link href={`/applications/${assignment.applicationId}`}>
-                      {assignment.application.applicationNumber}
-                    </Link>
-                  </td>
-                  <td>{assignment.application.title}</td>
-                  <td>
-                    <DeadlineBadge deadline={assignment.deadline} label="Batas Telaah" />
-                  </td>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Nomor</th>
+                  <th>Judul</th>
+                  <th>Batas Waktu</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {assignments.map((assignment) => (
+                  <tr key={assignment.id}>
+                    <td>
+                      <Link href={`/applications/${assignment.applicationId}`}>
+                        {assignment.application.applicationNumber}
+                      </Link>
+                    </td>
+                    <td>{assignment.application.title}</td>
+                    <td>
+                      <DeadlineBadge deadline={assignment.deadline} label="Batas Telaah" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <Pagination page={page} total={total} basePath="/reviewer/assignments" />
         </>
       )}
