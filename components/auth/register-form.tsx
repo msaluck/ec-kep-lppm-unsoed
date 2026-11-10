@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { registerResearcher } from '@/app/actions/register-researcher';
@@ -87,8 +88,14 @@ export function RegisterForm() {
         </form>
 
         <p className="auth-switch">
-          Sudah punya akun? <a href="/login">Masuk di sini</a>
+          Sudah punya akun? <Link href="/login">Masuk di sini</Link>
         </p>
+
+        <div className="mt-4 pt-4 border-t border-(--border) text-center">
+          <Link href="/" className="text-xs text-(--muted) hover:text-(--text) no-underline transition-colors">
+            ← Kembali ke Beranda Utama
+          </Link>
+        </div>
       </div>
     </main>
   );

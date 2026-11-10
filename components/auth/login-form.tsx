@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -83,8 +84,14 @@ export function LoginForm() {
         </form>
 
         <p className="auth-switch">
-          Belum punya akun (Peneliti)? <a href="/register">Daftar di sini</a>
+          Belum punya akun (Peneliti)? <Link href="/register">Daftar di sini</Link>
         </p>
+
+        <div className="mt-4 pt-4 border-t border-(--border) text-center">
+          <Link href="/" className="text-xs text-(--muted) hover:text-(--text) no-underline transition-colors">
+            ← Kembali ke Beranda Utama
+          </Link>
+        </div>
       </div>
     </main>
   );

@@ -27,7 +27,9 @@ export function AppHeader() {
   return (
     <header className="app-header">
       <div className="app-header-inner">
-        <span className="app-brand">EC-KEP LPPM Unsoed</span>
+        <Link href="/" className="app-brand no-underline hover:opacity-85 transition-opacity" title="Ke Beranda Utama">
+          EC-KEP LPPM Unsoed
+        </Link>
         <nav className="app-nav">
           {links.map((link) => (
             <Link key={link.href} href={link.href} className={pathname === link.href ? 'active' : ''}>
