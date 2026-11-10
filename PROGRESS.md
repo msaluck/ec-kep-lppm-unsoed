@@ -65,7 +65,23 @@ Last updated: 2026-07-24
   - `next.config.js`: `output: 'standalone'` (needed for CloudPanel) is now skipped when `process.env.VERCEL` is set, since Vercel manages its own build/runtime format.
   - Added `@vercel/blob` dependency. Hit and fixed one incidental typecheck error surfaced along the way: `next/server`'s `NextResponse` in this TS/lib version doesn't structurally accept a bare `Buffer` as `BodyInit` once it's returned through a named helper function (it did when inlined via `fs.readFile()` directly) - fixed by wrapping in `new Uint8Array(fileBuffer)` at the one call site, unrelated to Blob itself.
   - Added a full "Deployment (Vercel)" section to README.md alongside the existing CloudPanel one; both paths coexist untouched (verified `npm run typecheck` and `next build` stay clean throughout).
-  - **Not yet done**: no actual Vercel project created, no production database provisioned, nothing deployed for real yet - this only makes the codebase ready for that, per [Not done](#not-done) below.
+- **Public Portal & Pages Implemented**:
+  - `app/page.tsx` transformed from an immediate redirect into an institutional landing portal with hero overview, role-aware dashboard/registration CTAs, 3-track explanation (*Exempted*, *Expedited*, *Full Board*), 5-milestone SLA timeline, and panel highlights (SAINTEK & SOSHUM).
+  - `app/tentang/profil/page.tsx`: institutional background, vision & mission, Tupoksi, ethical guidelines, and legal foundation with clearly marked customization placeholders.
+  - `app/tentang/struktur-organisasi/page.tsx`: organizational hierarchy covering leadership (Pelindung, Pengarah, Ketua & Sekretaris), secretariat, and review panels with member cards and marked placeholders.
+  - `app/kontak/page.tsx`: secretariat address, emails, service hours, interactive categorized inquiry form (`components/contact/contact-form.tsx`), and FAQ.
+  - Shared layout components: `components/layout/public-header.tsx` (with dropdown & mobile drawer), `components/layout/public-footer.tsx`, and `components/layout/public-shell.tsx`.
+  - Added back-to-home navigation links in login/register forms and linked internal dashboard brand headers back to home.
+- **Vercel & Free Cloud Database Deployment (Live & Verified)**:
+  - Configured zero-cost database with **TiDB Cloud Serverless** (MySQL 8 compatible, 5 GB storage free forever, no credit card required).
+  - Applied all 4 Prisma migrations and seeded initial staff accounts directly into the TiDB cloud database.
+  - Added `scripts/check-users.ts` and `npm run users:check` script to inspect live database accounts and verify bcrypt password hashes.
+  - Fixed Vercel build caching issue: updated `package.json` to run `prisma generate` during `build` and `postinstall`.
+  - Fixed Next.js 14 App Router static build collection errors by declaring `export const dynamic = 'force-dynamic'` on API route handlers (`/api/auth/[...nextauth]`, `/api/cron/reminders`, `/api/documents/[id]`).
+  - Fixed NextAuth runtime `[next-auth][error][NO_SECRET]` in production by explicitly specifying `secret` with a fallback in `lib/auth.ts`.
+  - Added `.trim().toLowerCase()` to email authentication in `lib/auth.ts` to prevent mobile keyboard auto-capitalization issues.
+  - Safely initialized `lib/resend.ts` to avoid top-level fatal crashes if `RESEND_API_KEY` is not provided at build-time.
+  - Pushed all commits to GitHub repository: `https://github.com/msaluck/ec-kep-lppm-unsoed.git`.
 
 ## Not done
 
@@ -73,7 +89,5 @@ Last updated: 2026-07-24
 - No verified Resend sending domain yet - real delivery only works to the Resend account owner's own address until `resend.com/domains` is set up; every other recipient will 403 until then
 - Zero automated tests (unit/integration/e2e) - every smoke test so far has been a manual one-off script, deleted after use, not a repeatable test suite
 
-**Deployment (nothing done yet)**
-- No CloudPanel site created, no real `.env` with production secrets, no `prisma migrate deploy` against production, no cron entry actually installed, no SSL/domain setup
-- No remote (GitHub/GitLab/etc.) configured yet - the repo exists locally only
-- Vercel: codebase is now ready (see above), but no Vercel project exists yet, no production database provisioned, no Blob store connected, nothing deployed for real
+**Deployment (CloudPanel VPS)**
+- No CloudPanel site created yet, no real `.env` with production secrets on VPS, no VPS cron entry actually installed (live cloud trial currently operates on Vercel + TiDB Cloud Serverless)

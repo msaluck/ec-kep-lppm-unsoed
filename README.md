@@ -5,6 +5,7 @@ Research Ethics Review and Approval System for the **Komisi Etik Penelitian (KEP
 ## Contents
 
 - [Overview](#overview)
+- [Public portal & pages](#public-portal--pages)
 - [Workflow](#workflow)
 - [Panel-specific fields](#panel-specific-fields)
 - [Tech stack](#tech-stack)
@@ -31,6 +32,20 @@ Four roles, each with their own dashboard:
 | Admin | - | `/admin/users` |
 
 Researchers self-register at `/register`. Secretariat, Chairman, Reviewer, and Admin accounts are appointed positions provisioned by an Admin (`/admin/users/new`) or via the seed script — there is no self-signup for those roles.
+
+## Public portal & pages
+
+The application includes an institutional public website wrapping the review system:
+
+| Route | Page | Purpose |
+|---|---|---|
+| `/` | **Home / Beranda** | Institutional landing portal with hero overview, dynamic role-aware dashboard CTAs, 3-track explanation (*Exempted*, *Expedited*, *Full Board*), 5-milestone SLA timeline, and panel highlights (SAINTEK & SOSHUM). |
+| `/tentang/profil` | **Profil KEP** | Institutional background, vision & mission, Tupoksi, ethical guidelines, and legal foundation (with marked placeholders for official decree numbers). |
+| `/tentang/struktur-organisasi` | **Struktur Organisasi** | Interactive organizational chart (Leadership, Secretariat, and Review Panels) with member cards and marked placeholders. |
+| `/kontak` | **Kontak & Layanan** | Secretariat address, official emails, service hours, interactive categorized inquiry form, and FAQ. |
+| `/login`, `/register` | **Autentikasi** | Sign-in and researcher self-registration forms, including back-to-home navigation links. |
+
+All public pages share a responsive [`PublicShell`](components/layout/public-shell.tsx) layout with active dropdown navigation, mobile drawer menu, and institutional footer.
 
 ## Workflow
 
@@ -87,8 +102,9 @@ All document fields here are plain URL inputs (e.g. a Google Drive link), not fi
 ```
 app/
   actions/            Server Actions - one workflow step or account operation per file
-  api/auth/           NextAuth route handler
-  api/documents/[id]/ Authorized document download/streaming
+  api/auth/           NextAuth route handler (force-dynamic)
+  api/cron/reminders/ Vercel Cron entry point - daily deadline scan (force-dynamic)
+  api/documents/[id]/ Authorized document download/streaming (force-dynamic)
   applications/       Researcher's application list, submission form, shared detail page
   secretariat/        Secretariat queue
   chairman/           Chairman queue
@@ -96,9 +112,15 @@ app/
   admin/              Admin user management
   profile/            Profile + password change (all roles)
   login/, register/   Auth pages
+  page.tsx            Public Beranda (Home) portal with role-aware dashboard entry
+  tentang/profil/     About KEP: profile, vision & mission, Tupoksi, and regulation references
+  tentang/struktur-organisasi/ About KEP: organization structure & committee cards
+  kontak/             Contact secretariat & interactive inquiry form
 components/
   applications/       Detail-page building blocks + per-status action forms
-  admin/, auth/, profile/, layout/
+  admin/, auth/, profile/
+  contact/            Contact inquiry form
+  layout/             AppHeader, PublicHeader, PublicFooter, PublicShell, PageShell, Pagination
   providers/          NextAuth SessionProvider wrapper
 lib/                  Shared server-side logic (see below)
 emails/               React Email templates
@@ -108,7 +130,7 @@ prisma/
   seed.ts             Provisions Admin/Secretariat/Chairman/2 Reviewers
 scripts/
   send-deadline-reminders.ts   CLI entry point (CloudPanel cron / manual run)
-app/api/cron/reminders/        Vercel Cron entry point - same logic, different trigger
+  check-users.ts               CLI diagnostic tool to inspect users & password hashes
 docker-compose.yml    Local MariaDB 11.4 container
 vercel.json           Vercel Cron schedule (Vercel deployments only)
 ```
@@ -206,13 +228,14 @@ Change these passwords via `/profile` (self-service) or `/admin/users/[id]` (Adm
 | Command | Purpose |
 |---|---|
 | `npm run dev` | Start the Next.js dev server |
-| `npm run build` | Production build (`output: standalone`) |
+| `npm run build` | Production build (`prisma generate && next build`) |
 | `npm run start` | Run the standalone build (`node .next/standalone/server.js`) |
 | `npm run typecheck` | `tsc --noEmit` across the whole project |
 | `npm run lint` | `next lint` |
 | `npm run prisma:generate` | Regenerate the Prisma client |
 | `npm run prisma:migrate` | `prisma migrate deploy` - apply committed migrations (production-safe) |
 | `npm run prisma:seed` | Run `prisma/seed.ts` |
+| `npm run users:check` | Inspect registered accounts and test bcrypt password matching |
 | `npm run reminders` | Run the deadline-reminder job once (see below) |
 
 ## Deployment (CloudPanel VPS)
@@ -241,21 +264,29 @@ Vercel's serverless functions have a **read-only, ephemeral filesystem** (only `
 
 ### 1. Provision a database
 
-Any internet-reachable MySQL-compatible database works (e.g. **PlanetScale**, **Railway**, or **Aiven**). Steps for any of them are the same shape:
+Any internet-reachable MySQL-compatible database works. For a **100% free forever** cloud setup without a credit card:
 
-1. Create a MySQL/MariaDB database instance.
-2. Copy its connection string into the form `mysql://user:password@host:port/database`.
-3. If the provider requires TLS (most do), append the query params it documents, e.g. PlanetScale: `?sslaccept=strict`.
+- **TiDB Cloud Serverless** (Recommended free tier): 5 GB row storage free forever, 100% MySQL 8 compatible with Prisma (`provider = "mysql"`).
+  1. Create a free account at [tidbcloud.com](https://tidbcloud.com) (no credit card required).
+  2. Create a **Serverless** cluster in your preferred region (e.g. Singapore `ap-southeast-1`).
+  3. Under **Connect**, choose **Prisma** to get the connection string:
+     ```
+     mysql://<user>:<password>@<host>:4000/test?sslaccept=strict
+     ```
+  > [!IMPORTANT]
+  > Connect to the `test` database (or create a dedicated database). **Do not** use `/sys` (which is a read-only MySQL internal catalog and will reject migrations).
+  > If your password contains special characters (`@`, `#`, etc.), reset it to an alphanumeric string or URL-encode them.
 
-Since a single Vercel deployment can spin up many concurrent serverless function instances, each opening its own Prisma connection, prefer a provider with built-in connection pooling (PlanetScale's proxy does this automatically). If yours doesn't, cap Prisma's own pool via the connection string, e.g. `?connection_limit=5`.
+Other alternatives: **Aiven**, **Railway**, or **Alwaysdata** (100MB free).
 
 ### 2. Push the schema to that database
 
-From your machine, with `DATABASE_URL` in `.env` temporarily pointed at the new production database:
+From your local terminal, temporarily override `DATABASE_URL` to run migrations and seed against the cloud database:
 
 ```bash
-npx prisma migrate deploy   # applies prisma/migrations/ to the production DB
-npm run prisma:seed         # creates the initial Admin/Secretariat/Chairman/Reviewer accounts
+DATABASE_URL="mysql://<user>:<password>@<host>:4000/test?sslaccept=strict" npx prisma migrate deploy
+DATABASE_URL="mysql://<user>:<password>@<host>:4000/test?sslaccept=strict" npm run prisma:seed
+npm run users:check   # verifies seeded accounts and bcrypt password matching
 ```
 
 Change every seeded password immediately after (via `/admin/users/[id]` once the app is live, or directly).
@@ -316,4 +347,4 @@ See [PROGRESS.md](PROGRESS.md) for the full, continuously updated list. In short
 
 - No verified Resend sending domain yet - real email delivery only reaches the Resend account owner's own address until one is verified.
 - No automated test suite (unit/integration/e2e) - verification so far has been manual Playwright smoke-test scripts, run and discarded.
-- Not yet deployed to a real CloudPanel/production environment.
+- CloudPanel VPS deployment is ready in configuration, while the live online cloud trial is deployed via Vercel + TiDB Cloud Serverless.
