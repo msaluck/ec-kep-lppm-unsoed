@@ -12,6 +12,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
+    "users:check": "tsx scripts/check-users.ts",
     "reminders": "tsx scripts/send-deadline-reminders.ts"
   },
   "prisma": {
