@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 // Credentials provider backed directly by the local MariaDB `users` table.
 // No external identity provider - all 4 roles authenticate the same way.
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || 'LlztzX9dlWfFxElgG19+D9lb3WgF8Vata8SrD3HeTXk=',
   session: { strategy: 'jwt' },
   pages: { signIn: '/login' },
   providers: [
