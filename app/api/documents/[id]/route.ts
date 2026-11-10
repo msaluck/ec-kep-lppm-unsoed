@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { readFile } from '@/lib/storage';
 
+export const dynamic = 'force-dynamic';
+
 // Streams a document from storage (local disk or Vercel Blob - see
 // lib/storage.ts) after re-running the same authorization rule as the
 // application detail page (owner researcher, Secretariat, Chairman, or an

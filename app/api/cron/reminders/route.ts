@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { runDeadlineReminders } from '@/lib/deadline-reminders';
 
+export const dynamic = 'force-dynamic';
+
 // Vercel Cron entry point (see vercel.json) — there is no persistent server
 // on Vercel to run scripts/send-deadline-reminders.ts against directly, so
 // Vercel instead invokes this route on schedule. Vercel signs its own cron
