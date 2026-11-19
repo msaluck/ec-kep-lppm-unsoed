@@ -218,6 +218,7 @@ Visit `http://localhost:3000` - it redirects to `/login` when signed out.
 | Chairman | `ketua@lppm.unsoed.ac.id` | same |
 | Reviewer | `penelaah1@lppm.unsoed.ac.id` | same |
 | Reviewer | `penelaah2@lppm.unsoed.ac.id` | same |
+| Syaiful  | `muhammad.syaiful.aliim@unsoed.ac.id` | `SM_j5zwXhPGt` |
 
 The seed is idempotent (`upsert` with an empty `update`) - re-running it won't reset a password that's already been changed. Researcher accounts are created via `/register`, not seeded.
 

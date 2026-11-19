@@ -27,6 +27,8 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
   const formRef = useRef<HTMLFormElement>(null);
   const topAlertRef = useRef<HTMLDivElement>(null);
   const [panelType, setPanelType] = useState<PanelType>('SAINTEK');
+  const [researchType, setResearchType] = useState<string>('Penelitian');
+  const [customResearchType, setCustomResearchType] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,6 +78,13 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
         if (typeof val === 'string' && val.trim().length > 0) {
           formData.set(field, autoPrefixUrl(val));
         }
+      }
+
+      // Set researchType value
+      if (researchType === 'Kegiatan Lainnya' && customResearchType.trim()) {
+        formData.set('researchType', `Kegiatan Lainnya (${customResearchType.trim()})`);
+      } else {
+        formData.set('researchType', researchType);
       }
 
       // Check protocol file existence and size
@@ -135,12 +144,48 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
         </div>
 
         <div className="field">
-          <label htmlFor="title">Judul Penelitian</label>
-          <input id="title" name="title" required placeholder="Masukkan judul lengkap usulan penelitian" />
+          <label htmlFor="researchType">
+            Jenis Penelitian / Kegiatan <span className="text-(--error)">*</span>
+          </label>
+          <select
+            id="researchType"
+            name="researchType"
+            value={researchType}
+            onChange={(e) => setResearchType(e.target.value)}
+            required
+          >
+            <option value="Penelitian">Penelitian (Research)</option>
+            <option value="Pelatihan">Pelatihan (Training)</option>
+            <option value="Kegiatan Lainnya">Kegiatan Lainnya (Other Activity)</option>
+          </select>
+          <span className="text-[0.7rem] text-(--muted) mt-1 block">
+            Pilih kategori kegiatan yang akan diajukan telaah etik.
+          </span>
         </div>
+
+        {researchType === 'Kegiatan Lainnya' && (
+          <div className="field">
+            <label htmlFor="customResearchType">Keterangan Kegiatan Lainnya (opsional)</label>
+            <input
+              id="customResearchType"
+              name="customResearchType"
+              value={customResearchType}
+              onChange={(e) => setCustomResearchType(e.target.value)}
+              placeholder="Contoh: Pengabdian Masyarakat, Pengujian Laboratorium, dll."
+            />
+          </div>
+        )}
+
         <div className="field">
-          <label htmlFor="researchType">Jenis Penelitian</label>
-          <input id="researchType" name="researchType" placeholder="Contoh: Klinis, Observasional, Eksperimen Hewan, Survei, dll." />
+          <label htmlFor="title">
+            Judul {researchType === 'Pelatihan' ? 'Pelatihan' : researchType === 'Kegiatan Lainnya' ? 'Kegiatan' : 'Penelitian'} <span className="text-(--error)">*</span>
+          </label>
+          <input
+            id="title"
+            name="title"
+            required
+            placeholder={`Masukkan judul lengkap ${researchType === 'Pelatihan' ? 'pelatihan' : researchType === 'Kegiatan Lainnya' ? 'kegiatan' : 'usulan penelitian'}`}
+          />
         </div>
         <div className="field">
           <label htmlFor="researchProtocol">Protokol Penelitian (PP) - wajib (.pdf)</label>

@@ -147,7 +147,7 @@ export default async function ApplicationDetailPage({
           <dd>{application.researcher.name}</dd>
           <dt>Institusi</dt>
           <dd>{application.institution ?? application.researcher.institution ?? '-'}</dd>
-          <dt>Jenis Penelitian</dt>
+          <dt>Jenis Penelitian / Kegiatan</dt>
           <dd>{application.researchType ?? '-'}</dd>
           <dt>Tanggal Pengajuan</dt>
           <dd>{application.submittedAt.toLocaleDateString('id-ID')}</dd>
