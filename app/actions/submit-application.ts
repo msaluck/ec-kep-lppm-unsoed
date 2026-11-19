@@ -18,13 +18,17 @@ type SubmitApplicationResult =
   | { success: true; applicationId: string; applicationNumber: string }
   | { success: false; error: string };
 
-function isHttpUrl(value: FormDataEntryValue | null): value is string {
-  if (typeof value !== 'string' || value.trim().length === 0) return false;
+function normalizeUrl(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== 'string' || value.trim().length === 0) return null;
+  let val = value.trim();
+  if (!/^https?:\/\//i.test(val)) {
+    val = `https://${val}`;
+  }
   try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:';
+    const url = new URL(val);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -102,26 +106,28 @@ export async function submitApplication(formData: FormData): Promise<SubmitAppli
   const urlValues: Partial<Record<PanelUrlField, string>> = {};
   for (const [field, label] of REQUIRED_URL_FIELDS_BY_PANEL[panelType]) {
     const raw = formData.get(field);
-    if (!isHttpUrl(raw)) {
-      return { success: false, error: `A valid link for ${label} is required.` };
+    const normalized = normalizeUrl(raw);
+    if (!normalized) {
+      return { success: false, error: `Tautan valid untuk ${label} wajib diisi (mis. https://drive.google.com/...).` };
     }
-    urlValues[field] = raw;
+    urlValues[field] = normalized;
   }
 
   const supportingDocumentUrlRaw = formData.get('supportingDocumentUrl');
+  const normalizedSupportingUrl = normalizeUrl(supportingDocumentUrlRaw);
   if (
     typeof supportingDocumentUrlRaw === 'string' &&
     supportingDocumentUrlRaw.trim().length > 0 &&
-    !isHttpUrl(supportingDocumentUrlRaw)
+    !normalizedSupportingUrl
   ) {
-    return { success: false, error: 'The supporting document link is not a valid URL.' };
+    return { success: false, error: 'Tautan dokumen pendukung bukan URL yang valid.' };
   }
 
   const panelFields = {
     proposerName: proposerName.trim(),
     institution: institution.trim(),
     ...urlValues,
-    supportingDocumentUrl: isHttpUrl(supportingDocumentUrlRaw) ? supportingDocumentUrlRaw : null,
+    supportingDocumentUrl: normalizedSupportingUrl,
   };
 
   const uploads: Array<{ file: File; documentType: DocumentType }> = [
@@ -192,7 +198,14 @@ export async function submitApplication(formData: FormData): Promise<SubmitAppli
       if (isUniqueCollision && attempt < MAX_RETRIES_ON_NUMBER_COLLISION) {
         continue; // regenerate applicationNumber and retry
       }
-      throw err;
+      console.error('submitApplication error:', err);
+      return {
+        success: false,
+        error:
+          err instanceof Error
+            ? `Gagal menyimpan aplikasi: ${err.message}`
+            : 'Gagal menyimpan aplikasi. Silakan periksa koneksi dan coba lagi.',
+      };
     }
   }
 

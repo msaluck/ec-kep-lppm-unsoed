@@ -22,7 +22,13 @@ import { AddDocumentForm } from '@/components/applications/actions/add-document-
 const FINAL_DECISION_STATUSES = ['PENDING_FINAL_DECISION', 'REVISION_1_SUBMITTED', 'REVISION_2_SUBMITTED'];
 const EXPEDITED_VOTING_STATUSES = ['EXPEDITED_ASSIGNED', 'EXPEDITED_REVIEWING'];
 
-export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
+export default async function ApplicationDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams?: { submitted?: string; revised?: string };
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     redirect('/login');
@@ -96,6 +102,36 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
 
   return (
     <PageShell title={`${application.applicationNumber} - ${application.title}`}>
+      {searchParams?.submitted === '1' && (
+        <div className="alert success mb-6 flex items-start gap-3 p-4 rounded-xl border border-(--success) bg-(--success-bg) shadow-xs">
+          <svg className="h-6 w-6 text-(--success) shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h3 className="text-base font-bold text-(--success)">Pengajuan Protokol Berhasil Dikirim!</h3>
+            <p className="text-sm text-(--success)/90 mt-1 leading-relaxed">
+              Aplikasi Anda telah resmi terdaftar dengan nomor <strong>{application.applicationNumber}</strong>.
+              Berkas saat ini sedang dalam antrean pemeriksaan kelengkapan administrasi oleh Sekretariat KEP (batas waktu maksimal 2 hari kerja).
+            </p>
+          </div>
+        </div>
+      )}
+
+      {searchParams?.revised === '1' && (
+        <div className="alert success mb-6 flex items-start gap-3 p-4 rounded-xl border border-(--success) bg-(--success-bg) shadow-xs">
+          <svg className="h-6 w-6 text-(--success) shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h3 className="text-base font-bold text-(--success)">Dokumen Perbaikan Revisi Berhasil Dikirim!</h3>
+            <p className="text-sm text-(--success)/90 mt-1 leading-relaxed">
+              Berkas perbaikan untuk nomor aplikasi <strong>{application.applicationNumber}</strong> telah berhasil disimpan.
+              Ketua KEP dan tim penelaah akan segera meninjau kembali perbaikan Anda.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="card">
         <h2>Informasi Aplikasi</h2>
         <dl className="detail-grid">

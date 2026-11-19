@@ -17,16 +17,22 @@ export function ResubmitRevisionForm({ applicationId, round }: { applicationId: 
     setError(null);
     setIsSubmitting(true);
 
-    const formData = new FormData(formRef.current);
-    formData.set('applicationId', applicationId);
-    const result = await resubmitRevision(formData);
+    try {
+      const formData = new FormData(formRef.current);
+      formData.set('applicationId', applicationId);
+      const result = await resubmitRevision(formData);
 
-    setIsSubmitting(false);
-    if (!result.success) {
-      setError(result.error);
-      return;
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+      router.push(`/applications/${applicationId}?revised=1`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Terjadi kendala saat mengirim perbaikan.');
+    } finally {
+      setIsSubmitting(false);
     }
-    router.refresh();
   }
 
   return (
