@@ -135,103 +135,143 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
       </div>
 
       <form ref={formRef} onSubmit={handleSubmit}>
-        <div className="field">
-          <label htmlFor="panelType">Jenis Panel</label>
-          <select id="panelType" name="panelType" value={panelType} onChange={(e) => setPanelType(e.target.value as PanelType)}>
-            <option value="SAINTEK">Panel Sains dan Teknologi</option>
-            <option value="SOSHUM">Panel Sosial dan Humaniora</option>
-          </select>
-        </div>
+        {/* Section 1: Data Diri Pengusul */}
+        <div className="mb-8">
+          <h2 className="text-base font-bold text-(--text) pb-2 border-b border-(--border)">
+            Data Diri Pengusul (Personal Information)
+          </h2>
+          <p className="text-xs text-(--muted) mt-1.5 mb-4">
+            Informasi identitas pengusul yang tercatat di sistem.
+          </p>
 
-        <div className="field">
-          <label htmlFor="researchType">
-            Jenis Penelitian / Kegiatan <span className="text-(--error)">*</span>
-          </label>
-          <select
-            id="researchType"
-            name="researchType"
-            value={researchType}
-            onChange={(e) => setResearchType(e.target.value)}
-            required
-          >
-            <option value="Penelitian">Penelitian (Research)</option>
-            <option value="Pelatihan">Pelatihan (Training)</option>
-            <option value="Kegiatan Lainnya">Kegiatan Lainnya (Other Activity)</option>
-          </select>
-          <span className="text-[0.7rem] text-(--muted) mt-1 block">
-            Pilih kategori kegiatan yang akan diajukan telaah etik.
-          </span>
-        </div>
-
-        {researchType === 'Kegiatan Lainnya' && (
           <div className="field">
-            <label htmlFor="customResearchType">Keterangan Kegiatan Lainnya (opsional)</label>
+            <label htmlFor="proposerName">
+              Nama Pengusul / Ketua Peneliti / Kegiatan Ilmiah <span className="text-(--error)">*</span>
+            </label>
+            <input id="proposerName" name="proposerName" required defaultValue={proposerName} />
+          </div>
+
+          <div className="field">
+            <label htmlFor="email">Alamat Email</label>
+            <input id="email" value={email} disabled />
+          </div>
+
+          <div className="field">
+            <label htmlFor="phone">No. HP (WhatsApp)</label>
+            <input id="phone" value={phone} disabled placeholder={phone ? undefined : 'Belum diisi di Profil'} />
+          </div>
+
+          <div className="field">
+            <label htmlFor="institution">
+              Universitas / Institusi <span className="text-(--error)">*</span>
+            </label>
+            <input id="institution" name="institution" required defaultValue={institution} />
+          </div>
+        </div>
+
+        {/* Section 2: Informasi Usulan */}
+        <div className="mb-8 border-t border-(--border) pt-6">
+          <h2 className="text-base font-bold text-(--text) pb-2 border-b border-(--border)">
+            Informasi Usulan & Jenis Panel
+          </h2>
+          <p className="text-xs text-(--muted) mt-1.5 mb-4">
+            Pilih jalur panel telaah dan tentukan rincian usulan penelitian/kegiatan.
+          </p>
+
+          <div className="field">
+            <label htmlFor="panelType">
+              Jenis Panel <span className="text-(--error)">*</span>
+            </label>
+            <select id="panelType" name="panelType" value={panelType} onChange={(e) => setPanelType(e.target.value as PanelType)}>
+              <option value="SAINTEK">Panel Sains dan Teknologi</option>
+              <option value="SOSHUM">Panel Sosial dan Humaniora</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <label htmlFor="researchType">
+              Jenis Penelitian / Kegiatan <span className="text-(--error)">*</span>
+            </label>
+            <select
+              id="researchType"
+              name="researchType"
+              value={researchType}
+              onChange={(e) => setResearchType(e.target.value)}
+              required
+            >
+              <option value="Penelitian">Penelitian (Research)</option>
+              <option value="Pelatihan">Pelatihan (Training)</option>
+              <option value="Kegiatan Lainnya">Kegiatan Lainnya (Other Activity)</option>
+            </select>
+            <span className="text-[0.7rem] text-(--muted) mt-1 block">
+              Pilih kategori kegiatan yang akan diajukan telaah etik.
+            </span>
+          </div>
+
+          {researchType === 'Kegiatan Lainnya' && (
+            <div className="field">
+              <label htmlFor="customResearchType">Keterangan Kegiatan Lainnya (opsional)</label>
+              <input
+                id="customResearchType"
+                name="customResearchType"
+                value={customResearchType}
+                onChange={(e) => setCustomResearchType(e.target.value)}
+                placeholder="Contoh: Pengabdian Masyarakat, Pengujian Laboratorium, dll."
+              />
+            </div>
+          )}
+
+          <div className="field">
+            <label htmlFor="title">
+              Judul {researchType === 'Pelatihan' ? 'Pelatihan' : researchType === 'Kegiatan Lainnya' ? 'Kegiatan' : 'Penelitian'} <span className="text-(--error)">*</span>
+            </label>
             <input
-              id="customResearchType"
-              name="customResearchType"
-              value={customResearchType}
-              onChange={(e) => setCustomResearchType(e.target.value)}
-              placeholder="Contoh: Pengabdian Masyarakat, Pengujian Laboratorium, dll."
+              id="title"
+              name="title"
+              required
+              placeholder={`Masukkan judul lengkap ${researchType === 'Pelatihan' ? 'pelatihan' : researchType === 'Kegiatan Lainnya' ? 'kegiatan' : 'usulan penelitian'}`}
             />
           </div>
-        )}
-
-        <div className="field">
-          <label htmlFor="title">
-            Judul {researchType === 'Pelatihan' ? 'Pelatihan' : researchType === 'Kegiatan Lainnya' ? 'Kegiatan' : 'Penelitian'} <span className="text-(--error)">*</span>
-          </label>
-          <input
-            id="title"
-            name="title"
-            required
-            placeholder={`Masukkan judul lengkap ${researchType === 'Pelatihan' ? 'pelatihan' : researchType === 'Kegiatan Lainnya' ? 'kegiatan' : 'usulan penelitian'}`}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="researchProtocol">Proposal Penelitian - wajib (.pdf)</label>
-          <input
-            id="researchProtocol"
-            name="researchProtocol"
-            type="file"
-            accept=".pdf,.doc,.docx"
-            required
-            onChange={handleFileChange}
-          />
-          <span className="text-[0.7rem] text-(--muted) mt-1 block">Format PDF disarankan (maks. 25 MB).</span>
-        </div>
-        <div className="field">
-          <label htmlFor="informedConsent">Informed Consent (opsional)</label>
-          <input id="informedConsent" name="informedConsent" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
-        </div>
-        <div className="field">
-          <label htmlFor="cvResearcher">CV Peneliti (opsional)</label>
-          <input id="cvResearcher" name="cvResearcher" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
-        </div>
-        <div className="field">
-          <label htmlFor="supportingDocuments">Dokumen Pendukung Lainnya (opsional, dapat lebih dari satu)</label>
-          <input id="supportingDocuments" name="supportingDocuments" type="file" multiple onChange={handleFileChange} />
         </div>
 
-        <h2 className="mt-6 mb-3 border-t border-(--border) pt-6 text-base font-bold text-(--text)">
-          Kelengkapan {panelType === 'SAINTEK' ? 'Panel Sains dan Teknologi' : 'Panel Sosial dan Humaniora'}
-        </h2>
+        {/* Section 3: Kelengkapan Panel */}
+        <div className="border-t border-(--border) pt-6">
+          <h2 className="text-base font-bold text-(--text) pb-2 border-b border-(--border)">
+            Kelengkapan {panelType === 'SAINTEK' ? 'Panel Sains dan Teknologi' : 'Panel Sosial dan Humaniora'}
+          </h2>
+          <p className="text-xs text-(--muted) mt-1.5 mb-4">
+            Unggah dokumen berkas dan cantumkan tautan penyimpanan berkas kelengkapan panel.
+          </p>
 
-        <div className="field">
-          <label htmlFor="proposerName">Nama Pengusul/Ketua Peneliti/Kegiatan Ilmiah</label>
-          <input id="proposerName" name="proposerName" required defaultValue={proposerName} />
-        </div>
-        <div className="field">
-          <label htmlFor="email">Alamat Email</label>
-          <input id="email" value={email} disabled />
-        </div>
-        <div className="field">
-          <label htmlFor="phone">No. HP (WhatsApp)</label>
-          <input id="phone" value={phone} disabled placeholder={phone ? undefined : 'Belum diisi di Profil'} />
-        </div>
-        <div className="field">
-          <label htmlFor="institution">Universitas/Institusi</label>
-          <input id="institution" name="institution" required defaultValue={institution} />
-        </div>
+          <div className="field">
+            <label htmlFor="researchProtocol">
+              Proposal Penelitian - wajib (.pdf) <span className="text-(--error)">*</span>
+            </label>
+            <input
+              id="researchProtocol"
+              name="researchProtocol"
+              type="file"
+              accept=".pdf,.doc,.docx"
+              required
+              onChange={handleFileChange}
+            />
+            <span className="text-[0.7rem] text-(--muted) mt-1 block">Format PDF disarankan (maks. 25 MB).</span>
+          </div>
+
+          <div className="field">
+            <label htmlFor="informedConsent">Informed Consent (opsional)</label>
+            <input id="informedConsent" name="informedConsent" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
+          </div>
+
+          <div className="field">
+            <label htmlFor="cvResearcher">CV Peneliti (opsional)</label>
+            <input id="cvResearcher" name="cvResearcher" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
+          </div>
+
+          <div className="field">
+            <label htmlFor="supportingDocuments">Dokumen Pendukung Lainnya (opsional, dapat lebih dari satu)</label>
+            <input id="supportingDocuments" name="supportingDocuments" type="file" multiple onChange={handleFileChange} />
+          </div>
 
         {panelType === 'SAINTEK' ? (
           <div className="field">
@@ -348,6 +388,7 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
             }}
           />
         </div>
+      </div>
 
         {/* Bottom Error & Success Notification (Visible right above submit button) */}
         {error && <div className="alert error mt-4 mb-2">{error}</div>}
