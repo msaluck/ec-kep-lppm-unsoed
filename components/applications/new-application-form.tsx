@@ -90,14 +90,14 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
       // Check protocol file existence and size
       const protocol = formData.get('researchProtocol') as File | null;
       if (!protocol || !(protocol instanceof File) || protocol.size === 0) {
-        setError('Berkas Protokol Penelitian (PP) wajib diunggah.');
+        setError('Berkas Proposal Penelitian wajib diunggah.');
         setIsSubmitting(false);
         topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
         return;
       }
 
       if (protocol.size > MAX_FILE_SIZE_BYTES) {
-        setError('Ukuran berkas Protokol Penelitian melebihi 25MB. Silakan kompres berkas terlebih dahulu.');
+        setError('Ukuran berkas Proposal Penelitian melebihi 25MB. Silakan kompres berkas terlebih dahulu.');
         setIsSubmitting(false);
         topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
         return;
@@ -188,7 +188,7 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
           />
         </div>
         <div className="field">
-          <label htmlFor="researchProtocol">Protokol Penelitian (PP) - wajib (.pdf)</label>
+          <label htmlFor="researchProtocol">Proposal Penelitian - wajib (.pdf)</label>
           <input
             id="researchProtocol"
             name="researchProtocol"

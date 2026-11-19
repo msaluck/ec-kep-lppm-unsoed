@@ -86,7 +86,7 @@ export async function submitApplication(formData: FormData): Promise<SubmitAppli
     return { success: false, error: 'Research title is required.' };
   }
   if (!isUploadedFile(researchProtocol)) {
-    return { success: false, error: 'Research Protocol (PP) document is required.' };
+    return { success: false, error: 'Berkas Proposal Penelitian wajib diunggah.' };
   }
 
   const panelType = formData.get('panelType');

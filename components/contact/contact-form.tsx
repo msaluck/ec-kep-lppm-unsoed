@@ -110,7 +110,7 @@ export function ContactForm() {
           >
             <option value="DOKUMEN">Kelengkapan Berkas & Format Dokumen</option>
             <option value="JALUR">Konsultasi Penentuan Jalur Telaah (Exempted/Expedited)</option>
-            <option value="STATUS">Pengecekan Status Pengajuan Protokol</option>
+            <option value="STATUS">Pengecekan Status Pengajuan Proposal</option>
             <option value="AKUN">Kendala Teknis Akun / Pendaftaran</option>
             <option value="LAINNYA">Pertanyaan / Saran Lainnya</option>
           </select>

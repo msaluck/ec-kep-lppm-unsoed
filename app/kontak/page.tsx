@@ -25,7 +25,7 @@ export default function KontakPage() {
             Hubungi Sekretariat KEP
           </h1>
           <p className="mt-2 text-base text-(--muted) max-w-2xl leading-relaxed">
-            Butuh bantuan mengenai persyaratan berkas, konsultasi jalur telaah etik, atau tindak lanjut pengajuan protokol Anda? Kami siap membantu.
+            Butuh bantuan mengenai persyaratan berkas, konsultasi jalur telaah etik, atau tindak lanjut pengajuan proposal Anda? Kami siap membantu.
           </p>
         </div>
       </section>
@@ -137,7 +137,7 @@ export default function KontakPage() {
                   <span className="text-xs font-bold uppercase tracking-wider text-(--accent)">Formulir Layanan</span>
                   <h2 className="text-xl font-bold text-(--text) mt-1">Kirim Pesan / Pertanyaan</h2>
                   <p className="text-xs text-(--muted) mt-1">
-                    Ajukan pertanyaan umum, kendala teknis akun, atau konsultasi awal seputar protokol penelitian Anda.
+                    Ajukan pertanyaan umum, kendala teknis akun, atau konsultasi awal seputar proposal penelitian Anda.
                   </p>
                 </div>
 

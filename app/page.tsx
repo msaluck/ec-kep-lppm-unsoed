@@ -65,7 +65,7 @@ export default async function HomePage() {
                       href="/applications/new"
                       className="inline-flex items-center gap-2 rounded-xl border border-(--border) bg-(--surface) px-5 py-3 text-sm font-semibold text-(--text) hover:bg-(--surface-hover) transition-all no-underline"
                     >
-                      Ajukan Protokol Baru
+                      Ajukan Proposal Baru
                     </Link>
                   )}
                 </>
@@ -162,9 +162,9 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
             <div className="relative rounded-2xl border border-(--border) bg-(--surface) p-5 shadow-xs">
               <div className="text-xs font-bold text-(--accent) mb-1">Milestone 1</div>
-              <h3 className="text-base font-bold text-(--text) mb-2">Pengajuan Protokol</h3>
+              <h3 className="text-base font-bold text-(--text) mb-2">Pengajuan Proposal</h3>
               <p className="text-xs text-(--muted) leading-relaxed">
-                Peneliti memilih panel (SAINTEK/SOSHUM), mengunggah berkas protokol, informed consent, dan dokumen instrumen.
+                Peneliti memilih panel (SAINTEK/SOSHUM), mengunggah berkas proposal, informed consent, dan dokumen instrumen.
               </p>
             </div>
 
@@ -252,10 +252,10 @@ export default async function HomePage() {
       <section className="py-16 sm:py-20 bg-(--surface)">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-(--text)">
-            Siap Mengajukan Protokol Etik Penelitian Anda?
+            Siap Mengajukan Proposal Etik Penelitian Anda?
           </h2>
           <p className="mt-3 text-sm sm:text-base text-(--muted) max-w-xl mx-auto">
-            Daftarkan diri Anda sebagai peneliti di portal EC-KEP LPPM Unsoed untuk memulai pengajuan protokol secara daring.
+            Daftarkan diri Anda sebagai peneliti di portal EC-KEP LPPM Unsoed untuk memulai pengajuan proposal secara daring.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link

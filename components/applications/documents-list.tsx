@@ -1,5 +1,17 @@
 import { DeleteDocumentButton } from '@/components/applications/actions/delete-document-button';
 
+const DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  RESEARCH_PROTOCOL: 'Proposal Penelitian',
+  INFORMED_CONSENT: 'Informed Consent',
+  CV_RESEARCHER: 'CV Peneliti',
+  SUPPORTING_DOCUMENT: 'Dokumen Pendukung',
+  EXEMPTION_LETTER: 'Surat Keterangan Bebas Etik',
+  ETHICAL_CLEARANCE_LETTER: 'Ethical Clearance (Keterangan Lolos Etik)',
+  REVISION_RESPONSE: 'Perbaikan Proposal / Tanggapan Revisi',
+  MEETING_MINUTES: 'Notulen Rapat',
+  OTHER: 'Dokumen Lainnya',
+};
+
 type DocumentEntry = {
   id: string;
   documentType: string;
@@ -28,7 +40,7 @@ export function DocumentsList({ documents, deletable = false }: { documents: Doc
         <tbody>
           {documents.map((doc) => (
             <tr key={doc.id}>
-              <td>{doc.documentType.replaceAll('_', ' ')}</td>
+              <td>{DOCUMENT_TYPE_LABELS[doc.documentType] ?? doc.documentType.replaceAll('_', ' ')}</td>
               <td>{doc.fileName}</td>
               <td>{doc.revisionRound || '-'}</td>
               <td>{doc.uploadedAt.toLocaleDateString('id-ID')}</td>

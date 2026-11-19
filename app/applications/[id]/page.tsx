@@ -108,7 +108,7 @@ export default async function ApplicationDetailPage({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <h3 className="text-base font-bold text-(--success)">Pengajuan Protokol Berhasil Dikirim!</h3>
+            <h3 className="text-base font-bold text-(--success)">Pengajuan Proposal Berhasil Dikirim!</h3>
             <p className="text-sm text-(--success)/90 mt-1 leading-relaxed">
               Aplikasi Anda telah resmi terdaftar dengan nomor <strong>{application.applicationNumber}</strong>.
               Berkas saat ini sedang dalam antrean pemeriksaan kelengkapan administrasi oleh Sekretariat KEP (batas waktu maksimal 2 hari kerja).

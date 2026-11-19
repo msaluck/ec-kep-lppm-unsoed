@@ -41,7 +41,7 @@ export function ResubmitRevisionForm({ applicationId, round }: { applicationId: 
       {error && <div className="alert error">{error}</div>}
       <form ref={formRef} onSubmit={handleSubmit}>
         <div className="field">
-          <label htmlFor="revisedProtocol">Protokol Penelitian yang Direvisi - wajib</label>
+          <label htmlFor="revisedProtocol">Proposal Penelitian yang Direvisi - wajib</label>
           <input id="revisedProtocol" name="revisedProtocol" type="file" required />
         </div>
         <div className="field">

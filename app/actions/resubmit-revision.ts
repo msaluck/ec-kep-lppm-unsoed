@@ -35,7 +35,7 @@ export async function resubmitRevision(formData: FormData): Promise<ResubmitRevi
     return { success: false, error: 'Missing applicationId.' };
   }
   if (!isUploadedFile(revisedProtocol)) {
-    return { success: false, error: 'Revised Research Protocol document is required.' };
+    return { success: false, error: 'Berkas Proposal Penelitian yang direvisi wajib diunggah.' };
   }
 
   const application = await prisma.application.findUnique({ where: { id: applicationId } });
