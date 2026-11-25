@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
@@ -18,6 +18,36 @@ export function PublicHeader() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [aboutDropdownOpen, setAboutDropdownOpen] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setAboutDropdownOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setAboutDropdownOpen(false);
+    }, 200);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setAboutDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   const dashboardHref = session?.user?.role ? (ROLE_DASHBOARD[session.user.role] ?? '/applications') : null;
   const isAboutActive = pathname.startsWith('/tentang');
@@ -53,9 +83,10 @@ export function PublicHeader() {
 
           {/* Dropdown Tentang Kami */}
           <div
+            ref={dropdownRef}
             className="relative"
-            onMouseEnter={() => setAboutDropdownOpen(true)}
-            onMouseLeave={() => setAboutDropdownOpen(false)}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
           >
             <button
               type="button"
@@ -64,7 +95,10 @@ export function PublicHeader() {
                   ? 'bg-(--accent-soft-bg) text-(--accent-soft-text)'
                   : 'text-(--muted) hover:bg-(--surface-hover) hover:text-(--text)'
               }`}
-              onClick={() => setAboutDropdownOpen((prev) => !prev)}
+              onClick={() => {
+                if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                setAboutDropdownOpen((prev) => !prev);
+              }}
               aria-expanded={aboutDropdownOpen}
             >
               Tentang Kami
@@ -79,31 +113,40 @@ export function PublicHeader() {
             </button>
 
             {aboutDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 w-56 rounded-xl border border-(--border) bg-(--surface) p-1.5 shadow-lg shadow-black/5 animate-in fade-in slide-in-from-top-1">
-                <Link
-                  href="/tentang/profil"
-                  onClick={() => setAboutDropdownOpen(false)}
-                  className={`flex flex-col rounded-lg px-3 py-2 text-sm no-underline transition-colors ${
-                    pathname === '/tentang/profil'
-                      ? 'bg-(--accent-soft-bg) text-(--accent-soft-text)'
-                      : 'text-(--text) hover:bg-(--surface-hover)'
-                  }`}
-                >
-                  <span className="font-semibold">Profil KEP</span>
-                  <span className="text-xs text-(--muted)">Visi, misi, dan dasar hukum</span>
-                </Link>
-                <Link
-                  href="/tentang/struktur-organisasi"
-                  onClick={() => setAboutDropdownOpen(false)}
-                  className={`flex flex-col rounded-lg px-3 py-2 text-sm no-underline transition-colors mt-0.5 ${
-                    pathname === '/tentang/struktur-organisasi'
-                      ? 'bg-(--accent-soft-bg) text-(--accent-soft-text)'
-                      : 'text-(--text) hover:bg-(--surface-hover)'
-                  }`}
-                >
-                  <span className="font-semibold">Struktur Organisasi</span>
-                  <span className="text-xs text-(--muted)">Susunan komisi & penelaah</span>
-                </Link>
+              <div
+                className="absolute top-full left-0 pt-1.5 w-56 z-50 animate-in fade-in slide-in-from-top-1"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                {/* Invisible hover bridge connecting button and dropdown */}
+                <div className="absolute -top-3 left-0 right-0 h-4" />
+
+                <div className="rounded-xl border border-(--border) bg-(--surface) p-1.5 shadow-xl shadow-black/10">
+                  <Link
+                    href="/tentang/profil"
+                    onClick={() => setAboutDropdownOpen(false)}
+                    className={`flex flex-col rounded-lg px-3 py-2 text-sm no-underline transition-colors ${
+                      pathname === '/tentang/profil'
+                        ? 'bg-(--accent-soft-bg) text-(--accent-soft-text)'
+                        : 'text-(--text) hover:bg-(--surface-hover)'
+                    }`}
+                  >
+                    <span className="font-semibold">Profil KEP</span>
+                    <span className="text-xs text-(--muted)">Visi, misi, dan dasar hukum</span>
+                  </Link>
+                  <Link
+                    href="/tentang/struktur-organisasi"
+                    onClick={() => setAboutDropdownOpen(false)}
+                    className={`flex flex-col rounded-lg px-3 py-2 text-sm no-underline transition-colors mt-0.5 ${
+                      pathname === '/tentang/struktur-organisasi'
+                        ? 'bg-(--accent-soft-bg) text-(--accent-soft-text)'
+                        : 'text-(--text) hover:bg-(--surface-hover)'
+                    }`}
+                  >
+                    <span className="font-semibold">Struktur Organisasi</span>
+                    <span className="text-xs text-(--muted)">Susunan komisi & penelaah</span>
+                  </Link>
+                </div>
               </div>
             )}
           </div>
