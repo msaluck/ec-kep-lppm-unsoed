@@ -34,7 +34,13 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
         </dl>
       </div>
 
-      <UserDetailActions userId={user.id} isActive={user.isActive} isSelf={user.id === session.user.id} />
+      <UserDetailActions
+        userId={user.id}
+        userName={user.name}
+        userRole={user.role}
+        isActive={user.isActive}
+        isSelf={user.id === session.user.id}
+      />
     </PageShell>
   );
 }

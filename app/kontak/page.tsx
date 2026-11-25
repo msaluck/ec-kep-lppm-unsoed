@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import { PublicShell } from '@/components/layout/public-shell';
 import { ContactForm } from '@/components/contact/contact-form';
+import { getSiteContent, DEFAULT_CONTACT_CONTENT, type ContactContent } from '@/lib/site-content';
 
 export const metadata = {
   title: 'Hubungi Kami - EC-KEP LPPM Unsoed',
   description: 'Alamat sekretariat, jam operasional, dan saluran bantuan Komisi Etik Penelitian LPPM Universitas Jenderal Soedirman',
 };
 
-export default function KontakPage() {
+export default async function KontakPage() {
+  const contact = await getSiteContent<ContactContent>('contact', DEFAULT_CONTACT_CONTENT);
+
   return (
     <PublicShell>
       {/* Page Header */}
@@ -22,7 +25,7 @@ export default function KontakPage() {
           </nav>
 
           <h1 className="text-3xl font-extrabold tracking-tight text-(--text) sm:text-4xl">
-            Hubungi Sekretariat KEP
+            Hubungi {contact.officeName || 'Sekretariat KEP'}
           </h1>
           <p className="mt-2 text-base text-(--muted) max-w-2xl leading-relaxed">
             Butuh bantuan mengenai persyaratan berkas, konsultasi jalur telaah etik, atau tindak lanjut pengajuan proposal Anda? Kami siap membantu.
@@ -53,11 +56,12 @@ export default function KontakPage() {
                   <h2 className="text-sm font-bold text-(--text)">Lokasi Sekretariat</h2>
                 </div>
                 <p className="text-xs text-(--muted) leading-relaxed">
-                  Gedung LPPM Universitas Jenderal Soedirman Lantai 1<br />
-                  Jl. Prof. Dr. HR Boenyamin No. 708, Grendeng, Purwokerto Utara, Kabupaten Banyumas, Jawa Tengah 53122
+                  {contact.buildingLocation}<br />
+                  {contact.streetAddress}<br />
+                  {contact.cityPostal}
                 </p>
                 <div className="mt-3 text-[0.7rem] text-(--muted) italic border-t border-(--border) pt-2">
-                  * Ruang Layanan Administrasi KEP LPPM Unsoed
+                  * {contact.officeName} LPPM Unsoed
                 </div>
               </div>
 
@@ -79,23 +83,17 @@ export default function KontakPage() {
                 <div className="space-y-2 text-xs text-(--muted)">
                   <div>
                     <span className="font-semibold text-(--text) block">Email Sekretariat:</span>
-                    <a href="mailto:kep@unsoed.ac.id" className="text-(--accent) hover:underline">
-                      kep@unsoed.ac.id
-                    </a>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-(--text) block">Email LPPM:</span>
-                    <a href="mailto:lppm@unsoed.ac.id" className="text-(--accent) hover:underline">
-                      lppm@unsoed.ac.id
+                    <a href={`mailto:${contact.email}`} className="text-(--accent) hover:underline">
+                      {contact.email}
                     </a>
                   </div>
                   <div>
                     <span className="font-semibold text-(--text) block">Telepon / Fax:</span>
-                    <span>(0281) 625739 <span className="text-[0.7rem] text-(--muted)">(Placeholder)</span></span>
+                    <span>{contact.phone}</span>
                   </div>
                   <div>
                     <span className="font-semibold text-(--text) block">Hotline WhatsApp:</span>
-                    <span>+62 812-XXXX-XXXX <span className="text-[0.7rem] text-(--muted)">(Placeholder)</span></span>
+                    <span>{contact.whatsapp}</span>
                   </div>
                 </div>
               </div>
@@ -113,18 +111,17 @@ export default function KontakPage() {
                 <ul className="text-xs text-(--muted) space-y-1.5 list-none p-0 m-0">
                   <li className="flex justify-between">
                     <span>Senin – Kamis:</span>
-                    <strong className="text-(--text)">08.00 – 16.00 WIB</strong>
+                    <strong className="text-(--text)">{contact.hoursWorkdays}</strong>
                   </li>
                   <li className="flex justify-between">
                     <span>Jumat:</span>
-                    <strong className="text-(--text)">08.00 – 16.30 WIB</strong>
+                    <strong className="text-(--text)">{contact.hoursFriday}</strong>
                   </li>
-                  <li className="text-[0.7rem] text-(--muted) pt-1">
-                    * Istirahat siang: 11.30 – 13.00 WIB (Jumat: 11.30 – 13.30 WIB)
-                  </li>
-                  <li className="text-[0.7rem] text-(--muted)">
-                    * Sabtu, Minggu, dan Hari Libur Nasional: Tutup
-                  </li>
+                  {contact.consultationNote && (
+                    <li className="text-[0.7rem] text-(--muted) pt-2 border-t border-(--border) leading-relaxed">
+                      * {contact.consultationNote}
+                    </li>
+                  )}
                 </ul>
               </div>
             </div>

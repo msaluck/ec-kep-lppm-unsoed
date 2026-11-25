@@ -29,9 +29,20 @@ Four roles, each with their own dashboard:
 | Secretariat | Sekretariat KEP | `/secretariat/queue` |
 | Chairman | Ketua / Sekretaris KEP | `/chairman/queue` |
 | Reviewer | Tim Penelaah / Rapat Pleno | `/reviewer/assignments` |
-| Admin | - | `/admin/users` |
+| Admin | Administrator Sistem | `/admin/users`, `/admin/content` |
 
 Researchers self-register at `/register`. Secretariat, Chairman, Reviewer, and Admin accounts are appointed positions provisioned by an Admin (`/admin/users/new`) or via the seed script — there is no self-signup for those roles.
+
+### Administrator Capabilities
+
+1. **User Management (`/admin/users`)**: Create, deactivate, and reset passwords for accounts across all roles.
+2. **Account Impersonation**: Admins can temporarily sign in as any active user (`RESEARCHER`, `SECRETARIAT`, `CHAIRMAN`, `REVIEWER`) with a single click. A persistent top banner (`ImpersonationBanner`) indicates active impersonation mode and provides a "Kembali ke Admin" button to instantly restore the original admin session without re-entering credentials.
+3. **Public Content Management (`/admin/content`)**: Dynamic configuration and publishing of institutional public pages:
+   - **Beranda & Info Terkini**: Hero titles, subheadings, announcements, and operational notices.
+   - **Profil KEP**: Institutional lead descriptions, vision, mission bullet points, duties (Tupoksi), and legal bases.
+   - **Struktur Organisasi**: Leadership, secretariat staff, and reviewer panel members for SAINTEK and SOSHUM.
+   - **Kontak & Layanan**: Physical location, contact emails/phones/WhatsApp, service operating hours, and consultation guidelines.
+   All customizations are stored in the database (`SiteContent` model) with fallback defaults.
 
 ## Public portal & pages
 

@@ -243,6 +243,15 @@ model Document {
   @@map("documents")
 }
 
+model SiteContent {
+  key       String   @id
+  content   String   @db.Text
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@map("site_contents")
+}
+
 // Track B (Expedited) - individual reviewer votes.
 model ReviewAssignment {
   id            String      @id @default(cuid())

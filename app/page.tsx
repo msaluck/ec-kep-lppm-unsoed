@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { PublicShell } from '@/components/layout/public-shell';
+import { getSiteContent, DEFAULT_HOME_CONTENT, type HomeContent } from '@/lib/site-content';
 
 const ROLE_DASHBOARD: Record<string, { href: string; label: string }> = {
   RESEARCHER: { href: '/applications', label: 'Dashboard Aplikasi Peneliti' },
@@ -12,7 +13,10 @@ const ROLE_DASHBOARD: Record<string, { href: string; label: string }> = {
 };
 
 export default async function HomePage() {
-  const session = await getServerSession(authOptions);
+  const [session, home] = await Promise.all([
+    getServerSession(authOptions),
+    getSiteContent<HomeContent>('home', DEFAULT_HOME_CONTENT),
+  ]);
   const userDashboard = session?.user?.role ? ROLE_DASHBOARD[session.user.role] : null;
 
   return (
@@ -36,14 +40,11 @@ export default async function HomePage() {
             </div>
 
             <h1 className="text-3xl font-extrabold tracking-tight text-(--text) sm:text-5xl sm:leading-tight">
-              Komisi Etik Penelitian (KEP)
-              <span className="block text-(--accent) mt-1">LPPM Universitas Jenderal Soedirman</span>
+              {home.heroTitle}
             </h1>
 
             <p className="mt-5 text-base sm:text-lg text-(--muted) leading-relaxed">
-              Mendukung penelitian yang berintegritas, melindungi hak dan martabat subjek penelitian, serta
-              memfasilitasi penerbitan <em>Ethical Clearance</em> untuk sivitas akademika dan peneliti mandiri secara
-              transparan, objektif, dan tepat waktu.
+              {home.heroSubtitle}
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -99,6 +100,41 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Announcement / Info Terkini Banner */}
+      {home.announcementEnabled && home.announcementTitle && (
+        <section className="bg-(--accent-soft-bg)/60 border-b border-(--border) py-4">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-(--accent) text-(--accent-contrast) text-xs font-bold">
+                  ℹ
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wide text-(--accent)">
+                      {home.announcementDate || 'Info Terkini'}
+                    </span>
+                    <span className="text-xs text-(--muted)">•</span>
+                    <h2 className="text-sm font-bold text-(--text) inline m-0">
+                      {home.announcementTitle}
+                    </h2>
+                  </div>
+                  <p className="text-xs text-(--muted) mt-0.5 leading-relaxed">
+                    {home.announcementText}
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/tentang/profil"
+                className="shrink-0 text-xs font-semibold text-(--accent) hover:underline no-underline"
+              >
+                Lihat Profil & Regulasi →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Highlights / Keunggulan */}
       <section className="py-12 border-b border-(--border) bg-(--surface)/50">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -119,7 +155,7 @@ export default async function HomePage() {
               </div>
               <h2 className="text-base font-bold text-(--text) mb-1">Kepastian Waktu (SLA)</h2>
               <p className="text-sm text-(--muted) leading-relaxed">
-                Penetapan batas hari kerja terukur di setiap tahap: 2 hari kelengkapan, 3 hari klasifikasi, dan max 10 hari telaah.
+                {home.notice || 'Penetapan batas hari kerja terukur di setiap tahap: 2 hari kelengkapan, 3 hari klasifikasi, dan max 10 hari telaah.'}
               </p>
             </div>
 
@@ -155,7 +191,7 @@ export default async function HomePage() {
               Alur Pengajuan & Penelaahan Etik
             </h2>
             <p className="text-sm sm:text-base text-(--muted) mt-2">
-              Proses evaluasi protokol penelitian dari pengajuan awal hingga penerbitan Ethical Clearance.
+              {home.aboutBrief || 'Proses evaluasi protokol penelitian dari pengajuan awal hingga penerbitan Ethical Clearance.'}
             </p>
           </div>
 

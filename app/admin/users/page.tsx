@@ -3,6 +3,7 @@ import { requireRole } from '@/lib/require-session';
 import { prisma } from '@/lib/prisma';
 import { PageShell } from '@/components/layout/page-shell';
 import { PAGE_SIZE, Pagination, parsePage } from '@/components/layout/pagination';
+import { ImpersonateButton } from '@/components/admin/impersonate-button';
 import type { Role } from '@prisma/client';
 
 const ROLE_FILTERS: Role[] = ['RESEARCHER', 'SECRETARIAT', 'CHAIRMAN', 'REVIEWER', 'ADMIN'];
@@ -12,7 +13,7 @@ export default async function AdminUsersPage({
 }: {
   searchParams: { page?: string; role?: string };
 }) {
-  await requireRole(['ADMIN']);
+  const session = await requireRole(['ADMIN']);
   const page = parsePage(searchParams.page);
   const roleFilter = ROLE_FILTERS.includes(searchParams.role as Role) ? (searchParams.role as Role) : undefined;
 
@@ -62,23 +63,43 @@ export default async function AdminUsersPage({
                   <th>Email</th>
                   <th>Peran</th>
                   <th>Status</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <Link href={`/admin/users/${user.id}`}>{user.name}</Link>
-                    </td>
-                    <td>{user.email}</td>
-                    <td>{user.role}</td>
-                    <td>
-                      <span className={`badge${user.isActive ? '' : ' rejected'}`}>
-                        {user.isActive ? 'Aktif' : 'Nonaktif'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {users.map((user) => {
+                  const isSelf = user.id === session.user.id;
+                  return (
+                    <tr key={user.id}>
+                      <td>
+                        <Link href={`/admin/users/${user.id}`} className="font-medium text-blue-600 hover:underline">
+                          {user.name}
+                        </Link>
+                      </td>
+                      <td>{user.email}</td>
+                      <td>{user.role}</td>
+                      <td>
+                        <span className={`badge${user.isActive ? '' : ' rejected'}`}>
+                          {user.isActive ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/admin/users/${user.id}`} className="text-xs text-slate-600 hover:text-slate-900 underline">
+                            Detail
+                          </Link>
+                          {!isSelf && user.isActive && (
+                            <ImpersonateButton
+                              targetUserId={user.id}
+                              targetUserName={user.name}
+                              targetUserRole={user.role}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

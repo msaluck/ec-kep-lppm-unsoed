@@ -1,5 +1,10 @@
 import Link from 'next/link';
 import { PublicShell } from '@/components/layout/public-shell';
+import {
+  getSiteContent,
+  DEFAULT_ORGANIZATION_CONTENT,
+  type OrganizationContent,
+} from '@/lib/site-content';
 
 export const metadata = {
   title: 'Struktur Organisasi - EC-KEP LPPM Unsoed',
@@ -12,10 +17,18 @@ type MemberCardProps = {
   title: string;
   badge?: string;
   department?: string;
-  isPlaceholder?: boolean;
 };
 
-function MemberCard({ role, name, title, badge, department, isPlaceholder }: MemberCardProps) {
+function MemberCard({ role, name, title, badge, department }: MemberCardProps) {
+  const initials = name
+    .replace(/^(\[|Dr\.|Prof\.|dr\.|Ir\.|drh\.|M\.|S\.)+\s*/i, '')
+    .trim()
+    .split(' ')
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase() || 'KP';
+
   return (
     <div className="rounded-xl border border-(--border) bg-(--surface) p-5 shadow-xs flex flex-col justify-between transition-all hover:border-(--accent)/50">
       <div>
@@ -32,11 +45,7 @@ function MemberCard({ role, name, title, badge, department, isPlaceholder }: Mem
 
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-(--accent-soft-bg) text-(--accent-soft-text) font-bold text-sm">
-            {name
-              .split(' ')
-              .slice(0, 2)
-              .map((n) => n[0])
-              .join('')}
+            {initials}
           </div>
           <div>
             <h3 className="text-sm font-bold text-(--text) leading-snug">{name}</h3>
@@ -45,17 +54,16 @@ function MemberCard({ role, name, title, badge, department, isPlaceholder }: Mem
           </div>
         </div>
       </div>
-
-      {isPlaceholder && (
-        <div className="mt-4 pt-3 border-t border-dashed border-(--border) text-[0.7rem] text-(--muted) italic">
-          * Placeholder nama & gelar
-        </div>
-      )}
     </div>
   );
 }
 
-export default function StrukturOrganisasiPage() {
+export default async function StrukturOrganisasiPage() {
+  const organization = await getSiteContent<OrganizationContent>(
+    'organization',
+    DEFAULT_ORGANIZATION_CONTENT,
+  );
+
   return (
     <PublicShell>
       {/* Page Header */}
@@ -99,22 +107,6 @@ export default function StrukturOrganisasiPage() {
       {/* Main Content */}
       <section className="py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-12">
-          {/* Note Banner for Customization */}
-          <div className="rounded-xl border border-dashed border-(--accent)/40 bg-(--accent-soft-bg)/30 p-4">
-            <div className="flex items-start gap-3">
-              <div className="rounded-md bg-(--accent) text-(--accent-contrast) px-2 py-0.5 text-xs font-bold uppercase tracking-wider shrink-0 mt-0.5">
-                Placeholder Konten
-              </div>
-              <div className="text-xs text-(--text) leading-relaxed">
-                <p className="font-semibold mb-1">Panduan Pengisian Data Pengurus:</p>
-                <p className="text-(--muted)">
-                  Data di bawah ini merupakan template susunan pengurus KEP LPPM Unsoed. Anda dapat mengganti nama pejabat,
-                  gelar akademik, foto/avatar, dan unit asal fakultas sesuai dengan SK Rektor / SK Ketua LPPM yang berlaku.
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Tier 1: Penanggung Jawab & Pengarah */}
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -131,11 +123,10 @@ export default function StrukturOrganisasiPage() {
               />
               <MemberCard
                 role="Penanggung Jawab"
-                name="[Nama Ketua LPPM Unsoed]"
-                title="Ketua LPPM Universitas Jenderal Soedirman"
+                name={organization.advisor.name}
+                title={organization.advisor.title}
                 badge="Pimpinan LPPM"
-                department="Lembaga Penelitian dan Pengabdian kepada Masyarakat"
-                isPlaceholder
+                department={organization.advisor.note || 'Lembaga Penelitian dan Pengabdian kepada Masyarakat'}
               />
             </div>
           </div>
@@ -146,22 +137,27 @@ export default function StrukturOrganisasiPage() {
               <h2 className="text-lg font-bold text-(--text)">Pimpinan Komisi Etik Penelitian</h2>
               <span className="h-px flex-1 bg-(--border)" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <MemberCard
                 role="Ketua KEP"
-                name="[Nama Ketua KEP Unsoed, Gelar]"
-                title="Ketua Komisi Etik Penelitian LPPM Unsoed"
+                name={organization.chairman.name}
+                title={organization.chairman.title}
                 badge="Ketua Komisi"
-                department="Fakultas / Unit Terkait"
-                isPlaceholder
+                department={organization.chairman.department}
+              />
+              <MemberCard
+                role="Wakil Ketua KEP"
+                name={organization.viceChairman.name}
+                title={organization.viceChairman.title}
+                badge="Wakil Ketua"
+                department={organization.viceChairman.department}
               />
               <MemberCard
                 role="Sekretaris KEP"
-                name="[Nama Sekretaris KEP Unsoed, Gelar]"
-                title="Sekretaris Komisi Etik Penelitian LPPM Unsoed"
+                name={organization.secretary.name}
+                title={organization.secretary.title}
                 badge="Sekretaris"
-                department="Fakultas / Unit Terkait"
-                isPlaceholder
+                department={organization.secretary.department}
               />
             </div>
           </div>
@@ -172,31 +168,17 @@ export default function StrukturOrganisasiPage() {
               <h2 className="text-lg font-bold text-(--text)">Sekretariat & Tim Administrasi</h2>
               <span className="h-px flex-1 bg-(--border)" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <MemberCard
-                role="Sekretariat"
-                name="[Nama Staf Verifikasi Dokumen]"
-                title="Pengelola Administrasi & Kelengkapan Protokol"
-                badge="Administrasi"
-                department="Sekretariat KEP LPPM"
-                isPlaceholder
-              />
-              <MemberCard
-                role="Sekretariat"
-                name="[Nama Staf Penjadwalan & Rapat]"
-                title="Pengelola Penjadwalan Pleno & Logistik"
-                badge="Administrasi"
-                department="Sekretariat KEP LPPM"
-                isPlaceholder
-              />
-              <MemberCard
-                role="Teknologi Informasi"
-                name="[Nama Pengelola IT Sistem]"
-                title="Administrator Sistem EC-KEP & Layanan Digital"
-                badge="IT & Web"
-                department="Tim IT LPPM"
-                isPlaceholder
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {organization.secretariatStaff.map((staff, idx) => (
+                <MemberCard
+                  key={idx}
+                  role={staff.role}
+                  name={staff.name}
+                  title={staff.task}
+                  badge="Sekretariat"
+                  department="LPPM Unsoed"
+                />
+              ))}
             </div>
           </div>
 
@@ -222,22 +204,13 @@ export default function StrukturOrganisasiPage() {
                 </p>
 
                 <div className="space-y-3">
-                  <div className="rounded-lg border border-(--border) bg-(--bg) p-3 text-xs">
-                    <p className="font-semibold text-(--text)">[Nama Penelaah SAINTEK 1, Gelar]</p>
-                    <p className="text-(--muted)">Keahlian: Kedokteran / Biomedis • Fakultas Kedokteran</p>
-                  </div>
-                  <div className="rounded-lg border border-(--border) bg-(--bg) p-3 text-xs">
-                    <p className="font-semibold text-(--text)">[Nama Penelaah SAINTEK 2, Gelar]</p>
-                    <p className="text-(--muted)">Keahlian: Farmakologi / Bahan Alam • Fakultas Farmasi</p>
-                  </div>
-                  <div className="rounded-lg border border-(--border) bg-(--bg) p-3 text-xs">
-                    <p className="font-semibold text-(--text)">[Nama Penelaah SAINTEK 3, Gelar]</p>
-                    <p className="text-(--muted)">Keahlian: Hewan Coba / Veteriner • Fakultas Peternakan/Biologi</p>
-                  </div>
+                  {organization.saintekMembers.map((member, idx) => (
+                    <div key={idx} className="rounded-lg border border-(--border) bg-(--bg) p-3 text-xs">
+                      <p className="font-semibold text-(--text)">{member.name}</p>
+                      <p className="text-(--muted)">{member.title} • Keahlian: {member.expertise}</p>
+                    </div>
+                  ))}
                 </div>
-                <p className="mt-3 text-[0.7rem] text-(--muted) italic text-center">
-                  + Anggota Tim Penelaah SAINTEK Lainnya (Sesuai SK)
-                </p>
               </div>
 
               {/* Panel SOSHUM */}
@@ -254,22 +227,13 @@ export default function StrukturOrganisasiPage() {
                 </p>
 
                 <div className="space-y-3">
-                  <div className="rounded-lg border border-(--border) bg-(--bg) p-3 text-xs">
-                    <p className="font-semibold text-(--text)">[Nama Penelaah SOSHUM 1, Gelar]</p>
-                    <p className="text-(--muted)">Keahlian: Sosiologi & Komunitas • FISIP</p>
-                  </div>
-                  <div className="rounded-lg border border-(--border) bg-(--bg) p-3 text-xs">
-                    <p className="font-semibold text-(--text)">[Nama Penelaah SOSHUM 2, Gelar]</p>
-                    <p className="text-(--muted)">Keahlian: Hukum & Hak Asasi Manusia • Fakultas Hukum</p>
-                  </div>
-                  <div className="rounded-lg border border-(--border) bg-(--bg) p-3 text-xs">
-                    <p className="font-semibold text-(--text)">[Nama Penelaah SOSHUM 3, Gelar]</p>
-                    <p className="text-(--muted)">Keahlian: Psikologi & Perilaku Sosial • Fakultas Terkait</p>
-                  </div>
+                  {organization.soshumMembers.map((member, idx) => (
+                    <div key={idx} className="rounded-lg border border-(--border) bg-(--bg) p-3 text-xs">
+                      <p className="font-semibold text-(--text)">{member.name}</p>
+                      <p className="text-(--muted)">{member.title} • Keahlian: {member.expertise}</p>
+                    </div>
+                  ))}
                 </div>
-                <p className="mt-3 text-[0.7rem] text-(--muted) italic text-center">
-                  + Anggota Tim Penelaah SOSHUM Lainnya (Sesuai SK)
-                </p>
               </div>
             </div>
           </div>

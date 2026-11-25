@@ -13,7 +13,10 @@ const NAV_LINKS: Record<Role, { href: string; label: string }[]> = {
   SECRETARIAT: [{ href: '/secretariat/queue', label: 'Antrean Kelengkapan' }],
   CHAIRMAN: [{ href: '/chairman/queue', label: 'Antrean Keputusan' }],
   REVIEWER: [{ href: '/reviewer/assignments', label: 'Penugasan Saya' }],
-  ADMIN: [{ href: '/admin/users', label: 'Manajemen Pengguna' }],
+  ADMIN: [
+    { href: '/admin/users', label: 'Manajemen Pengguna' },
+    { href: '/admin/content', label: 'Kelola Konten Publik' },
+  ],
 };
 
 export function AppHeader() {

@@ -4,13 +4,18 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setUserActive } from '@/app/actions/set-user-active';
 import { resetUserPassword } from '@/app/actions/reset-user-password';
+import { ImpersonateButton } from '@/components/admin/impersonate-button';
 
 export function UserDetailActions({
   userId,
+  userName,
+  userRole,
   isActive,
   isSelf,
 }: {
   userId: string;
+  userName?: string;
+  userRole?: string;
   isActive: boolean;
   isSelf: boolean;
 }) {
@@ -53,7 +58,14 @@ export function UserDetailActions({
           Kata sandi baru (tampil sekali saja, catat sekarang): <code>{temporaryPassword}</code>
         </div>
       )}
-      <div className="action-row">
+      <div className="action-row items-center gap-3">
+        {!isSelf && isActive && userName && userRole && (
+          <ImpersonateButton
+            targetUserId={userId}
+            targetUserName={userName}
+            targetUserRole={userRole}
+          />
+        )}
         <button type="button" className="btn secondary" disabled={isSubmitting} onClick={handleResetPassword}>
           Reset Kata Sandi
         </button>

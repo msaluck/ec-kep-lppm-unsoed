@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Inter } from 'next/font/google';
 import { AppSessionProvider } from '@/components/providers/session-provider';
+import { ImpersonationBanner } from '@/components/layout/impersonation-banner';
 import './globals.css';
 
 const inter = Inter({
@@ -22,7 +23,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <a href="#main-content" className="skip-link">
           Langsung ke konten utama
         </a>
-        <AppSessionProvider>{children}</AppSessionProvider>
+        <AppSessionProvider>
+          <ImpersonationBanner />
+          {children}
+        </AppSessionProvider>
       </body>
     </html>
   );
