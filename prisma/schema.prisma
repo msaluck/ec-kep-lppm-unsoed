@@ -78,6 +78,10 @@ enum DocumentType {
   REVISION_RESPONSE         // researcher's revised documents
   MEETING_MINUTES
   OTHER
+  APPLICATION_FORM
+  LEADER_STATEMENT
+  CONFLICT_OF_INTEREST
+  RESEARCH_INSTRUMENT
 }
 
 enum NotificationEvent {

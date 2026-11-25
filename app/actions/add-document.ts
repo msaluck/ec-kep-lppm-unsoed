@@ -7,7 +7,17 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { isUploadedFile, persistUpload } from '@/lib/documents';
 
-const AddDocumentDocumentType = z.enum(['RESEARCH_PROTOCOL', 'INFORMED_CONSENT', 'CV_RESEARCHER', 'SUPPORTING_DOCUMENT']);
+const AddDocumentDocumentType = z.enum([
+  'RESEARCH_PROTOCOL',
+  'APPLICATION_FORM',
+  'LEADER_STATEMENT',
+  'CONFLICT_OF_INTEREST',
+  'RESEARCH_INSTRUMENT',
+  'INFORMED_CONSENT',
+  'CV_RESEARCHER',
+  'SUPPORTING_DOCUMENT',
+  'OTHER',
+]);
 
 type AddDocumentResult = { success: true } | { success: false; error: string };
 

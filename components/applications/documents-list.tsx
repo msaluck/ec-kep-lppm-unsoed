@@ -2,6 +2,10 @@ import { DeleteDocumentButton } from '@/components/applications/actions/delete-d
 
 const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   RESEARCH_PROTOCOL: 'Proposal Penelitian',
+  APPLICATION_FORM: 'Formulir Aplikasi',
+  LEADER_STATEMENT: 'Formulir Pernyataan Ketua',
+  CONFLICT_OF_INTEREST: 'Pernyataan Konflik Kepentingan',
+  RESEARCH_INSTRUMENT: 'Instrumen Penelitian',
   INFORMED_CONSENT: 'Informed Consent',
   CV_RESEARCHER: 'CV Peneliti',
   SUPPORTING_DOCUMENT: 'Dokumen Pendukung',

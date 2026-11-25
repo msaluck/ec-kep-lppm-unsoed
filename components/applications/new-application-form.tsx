@@ -64,9 +64,9 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
 
       // Pre-normalize URL fields in FormData before sending to server action
       const urlFields = [
+        'proposalUrl',
         'saintekFormUrl',
         'soshumFormUrl',
-        'proposalUrl',
         'leaderStatementUrl',
         'conflictOfInterestUrl',
         'informedConsentUrl',
@@ -87,20 +87,72 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
         formData.set('researchType', researchType);
       }
 
-      // Check protocol file existence and size
-      const protocol = formData.get('researchProtocol') as File | null;
-      if (!protocol || !(protocol instanceof File) || protocol.size === 0) {
-        setError('Berkas Proposal Penelitian wajib diunggah.');
+      // Helper check for uploaded file
+      const hasFile = (val: FormDataEntryValue | null) => val instanceof File && val.size > 0;
+
+      // Check all uploaded files for 25MB limit
+      for (const [, value] of formData.entries()) {
+        if (value instanceof File && value.size > 0) {
+          if (value.size > MAX_FILE_SIZE_BYTES) {
+            setError(`Ukuran berkas "${value.name}" melebihi batas 25MB. Silakan kompres berkas terlebih dahulu.`);
+            setIsSubmitting(false);
+            topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
+            return;
+          }
+        }
+      }
+
+      // Validate required documents (must have file OR valid URL)
+      const hasProposal = hasFile(formData.get('proposal')) || Boolean(formData.get('proposalUrl'));
+      if (!hasProposal) {
+        setError('Proposal Penelitian wajib diunggah berkasnya atau dicantumkan tautan Google Drive / Cloud.');
         setIsSubmitting(false);
         topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
         return;
       }
 
-      if (protocol.size > MAX_FILE_SIZE_BYTES) {
-        setError('Ukuran berkas Proposal Penelitian melebihi 25MB. Silakan kompres berkas terlebih dahulu.');
+      if (panelType === 'SAINTEK') {
+        const hasSaintekForm = hasFile(formData.get('saintekForm')) || Boolean(formData.get('saintekFormUrl'));
+        if (!hasSaintekForm) {
+          setError('Formulir Aplikasi Saintek (Word) wajib diunggah berkasnya atau dicantumkan tautan Google Drive / Cloud.');
+          setIsSubmitting(false);
+          topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+      } else {
+        const hasSoshumForm = hasFile(formData.get('soshumForm')) || Boolean(formData.get('soshumFormUrl'));
+        if (!hasSoshumForm) {
+          setError('Formulir Aplikasi Telaah Etik (Word) wajib diunggah berkasnya atau dicantumkan tautan Google Drive / Cloud.');
+          setIsSubmitting(false);
+          topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+      }
+
+      const hasLeaderStatement = hasFile(formData.get('leaderStatement')) || Boolean(formData.get('leaderStatementUrl'));
+      if (!hasLeaderStatement) {
+        setError('Formulir Pernyataan Ketua Peneliti wajib diunggah berkasnya atau dicantumkan tautan Google Drive / Cloud.');
         setIsSubmitting(false);
         topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
         return;
+      }
+
+      const hasConflict = hasFile(formData.get('conflictOfInterest')) || Boolean(formData.get('conflictOfInterestUrl'));
+      if (!hasConflict) {
+        setError('Formulir Pernyataan Konflik Kepentingan wajib diunggah berkasnya atau dicantumkan tautan Google Drive / Cloud.');
+        setIsSubmitting(false);
+        topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+
+      if (panelType === 'SOSHUM') {
+        const hasInstrument = hasFile(formData.get('researchInstrument')) || Boolean(formData.get('researchInstrumentUrl'));
+        if (!hasInstrument) {
+          setError('Instrumen Penelitian wajib diunggah berkasnya atau dicantumkan tautan Google Drive / Cloud.');
+          setIsSubmitting(false);
+          topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
       }
 
       const result = await submitApplication(formData);
@@ -239,156 +291,283 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
           <h2 className="text-base font-bold text-(--text) pb-2 border-b border-(--border)">
             Kelengkapan {panelType === 'SAINTEK' ? 'Panel Sains dan Teknologi' : 'Panel Sosial dan Humaniora'}
           </h2>
-          <p className="text-xs text-(--muted) mt-1.5 mb-4">
-            Unggah dokumen berkas dan cantumkan tautan penyimpanan berkas kelengkapan panel.
+          <p className="text-xs text-(--muted) mt-1.5 mb-5">
+            Lengkapi berkas persyaratan berikut. Anda dapat <strong>mengunggah berkas secara langsung</strong> (PDF/Word, maks. 25 MB) atau mencantumkan tautan Google Drive / Cloud storage jika berkas berukuran besar.
           </p>
 
-          <div className="field">
-            <label htmlFor="researchProtocol">
-              Proposal Penelitian - wajib (.pdf) <span className="text-(--error)">*</span>
+          {/* 1. Proposal (Wajib untuk SAINTEK & SOSHUM) */}
+          <div className="field rounded-xl border border-(--border) bg-(--surface) p-4 mb-4">
+            <label htmlFor="proposal" className="text-sm font-semibold text-(--text) flex items-center justify-between">
+              <span>1. Proposal Penelitian <span className="text-(--error)">*</span></span>
+              <span className="text-[0.7rem] text-(--muted) font-normal">Wajib (.pdf / .doc / .docx)</span>
             </label>
-            <input
-              id="researchProtocol"
-              name="researchProtocol"
-              type="file"
-              accept=".pdf,.doc,.docx"
-              required
-              onChange={handleFileChange}
-            />
-            <span className="text-[0.7rem] text-(--muted) mt-1 block">Format PDF disarankan (maks. 25 MB).</span>
-          </div>
-
-          <div className="field">
-            <label htmlFor="informedConsent">Informed Consent (opsional)</label>
-            <input id="informedConsent" name="informedConsent" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
-          </div>
-
-          <div className="field">
-            <label htmlFor="cvResearcher">CV Peneliti (opsional)</label>
-            <input id="cvResearcher" name="cvResearcher" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
-          </div>
-
-          <div className="field">
-            <label htmlFor="supportingDocuments">Dokumen Pendukung Lainnya (opsional, dapat lebih dari satu)</label>
-            <input id="supportingDocuments" name="supportingDocuments" type="file" multiple onChange={handleFileChange} />
-          </div>
-
-        {panelType === 'SAINTEK' ? (
-          <div className="field">
-            <label htmlFor="saintekFormUrl">Formulir Aplikasi Saintek (Word) - tautan (mis. Google Drive)</label>
-            <input
-              id="saintekFormUrl"
-              name="saintekFormUrl"
-              type="text"
-              required
-              placeholder="https://drive.google.com/..."
-              onBlur={(e) => {
-                if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
-              }}
-            />
-          </div>
-        ) : (
-          <div className="field">
-            <label htmlFor="soshumFormUrl">Formulir Aplikasi Telaah Etik (Word) - tautan (mis. Google Drive)</label>
-            <input
-              id="soshumFormUrl"
-              name="soshumFormUrl"
-              type="text"
-              required
-              placeholder="https://drive.google.com/..."
-              onBlur={(e) => {
-                if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
-              }}
-            />
-          </div>
-        )}
-
-        <div className="field">
-          <label htmlFor="proposalUrl">Proposal Penelitian (Pdf) - tautan</label>
-          <input
-            id="proposalUrl"
-            name="proposalUrl"
-            type="text"
-            required
-            placeholder="https://drive.google.com/..."
-            onBlur={(e) => {
-              if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
-            }}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="leaderStatementUrl">Formulir Pernyataan Ketua Peneliti/Kegiatan Ilmiah (Pdf) - tautan</label>
-          <input
-            id="leaderStatementUrl"
-            name="leaderStatementUrl"
-            type="text"
-            required
-            placeholder="https://drive.google.com/..."
-            onBlur={(e) => {
-              if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
-            }}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="conflictOfInterestUrl">
-            Formulir Pernyataan Ketua Peneliti/Kegiatan Ilmiah terkait Konflik Kepentingan (Pdf) - tautan
-          </label>
-          <input
-            id="conflictOfInterestUrl"
-            name="conflictOfInterestUrl"
-            type="text"
-            required
-            placeholder="https://drive.google.com/..."
-            onBlur={(e) => {
-              if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
-            }}
-          />
-        </div>
-
-        {panelType === 'SOSHUM' && (
-          <>
-            <div className="field">
-              <label htmlFor="informedConsentUrl">Lembar Informed Consent (Pdf) - tautan</label>
+            <div className="mt-2 space-y-2">
               <input
-                id="informedConsentUrl"
-                name="informedConsentUrl"
+                id="proposal"
+                name="proposal"
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={handleFileChange}
+              />
+              <input
+                id="proposalUrl"
+                name="proposalUrl"
                 type="text"
-                required
-                placeholder="https://drive.google.com/..."
+                placeholder="Atau tautan Google Drive / Cloud (opsional jika berkas sudah diunggah)"
                 onBlur={(e) => {
                   if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
                 }}
               />
             </div>
-            <div className="field">
-              <label htmlFor="researchInstrumentUrl">Instrumen Penelitian - tautan</label>
+          </div>
+
+          {/* 2. Form Aplikasi (Word) (Wajib untuk SAINTEK & SOSHUM) */}
+          {panelType === 'SAINTEK' ? (
+            <div className="field rounded-xl border border-(--border) bg-(--surface) p-4 mb-4">
+              <label htmlFor="saintekForm" className="text-sm font-semibold text-(--text) flex items-center justify-between">
+                <span>2. Form Aplikasi (Word) <span className="text-(--error)">*</span></span>
+                <span className="text-[0.7rem] text-(--muted) font-normal">Wajib (.doc / .docx / .pdf)</span>
+              </label>
+              <div className="mt-2 space-y-2">
+                <input
+                  id="saintekForm"
+                  name="saintekForm"
+                  type="file"
+                  accept=".doc,.docx,.pdf"
+                  onChange={handleFileChange}
+                />
+                <input
+                  id="saintekFormUrl"
+                  name="saintekFormUrl"
+                  type="text"
+                  placeholder="Atau tautan Google Drive / Cloud (opsional jika berkas sudah diunggah)"
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="field rounded-xl border border-(--border) bg-(--surface) p-4 mb-4">
+              <label htmlFor="soshumForm" className="text-sm font-semibold text-(--text) flex items-center justify-between">
+                <span>2. Form Aplikasi (Word) <span className="text-(--error)">*</span></span>
+                <span className="text-[0.7rem] text-(--muted) font-normal">Wajib (.doc / .docx / .pdf)</span>
+              </label>
+              <div className="mt-2 space-y-2">
+                <input
+                  id="soshumForm"
+                  name="soshumForm"
+                  type="file"
+                  accept=".doc,.docx,.pdf"
+                  onChange={handleFileChange}
+                />
+                <input
+                  id="soshumFormUrl"
+                  name="soshumFormUrl"
+                  type="text"
+                  placeholder="Atau tautan Google Drive / Cloud (opsional jika berkas sudah diunggah)"
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 3. Formulir Pernyataan Ketua (Wajib untuk SAINTEK & SOSHUM) */}
+          <div className="field rounded-xl border border-(--border) bg-(--surface) p-4 mb-4">
+            <label htmlFor="leaderStatement" className="text-sm font-semibold text-(--text) flex items-center justify-between">
+              <span>3. Formulir Pernyataan Ketua Peneliti / Kegiatan Ilmiah <span className="text-(--error)">*</span></span>
+              <span className="text-[0.7rem] text-(--muted) font-normal">Wajib (.pdf / .doc / .docx)</span>
+            </label>
+            <div className="mt-2 space-y-2">
               <input
-                id="researchInstrumentUrl"
-                name="researchInstrumentUrl"
+                id="leaderStatement"
+                name="leaderStatement"
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={handleFileChange}
+              />
+              <input
+                id="leaderStatementUrl"
+                name="leaderStatementUrl"
                 type="text"
-                required
-                placeholder="https://drive.google.com/..."
+                placeholder="Atau tautan Google Drive / Cloud (opsional jika berkas sudah diunggah)"
                 onBlur={(e) => {
                   if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
                 }}
               />
             </div>
-          </>
-        )}
+          </div>
 
-        <div className="field">
-          <label htmlFor="supportingDocumentUrl">Dokumen Pendukung (Apabila diperlukan, Pdf) - tautan (opsional)</label>
-          <input
-            id="supportingDocumentUrl"
-            name="supportingDocumentUrl"
-            type="text"
-            placeholder="https://drive.google.com/..."
-            onBlur={(e) => {
-              if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
-            }}
-          />
+          {/* 4. Formulir Pernyataan Ketua Peneliti terkait Konflik kepentingan (Wajib untuk SAINTEK & SOSHUM) */}
+          <div className="field rounded-xl border border-(--border) bg-(--surface) p-4 mb-4">
+            <label htmlFor="conflictOfInterest" className="text-sm font-semibold text-(--text) flex items-center justify-between">
+              <span>4. Formulir Pernyataan Ketua Peneliti terkait Konflik Kepentingan <span className="text-(--error)">*</span></span>
+              <span className="text-[0.7rem] text-(--muted) font-normal">Wajib (.pdf / .doc / .docx)</span>
+            </label>
+            <div className="mt-2 space-y-2">
+              <input
+                id="conflictOfInterest"
+                name="conflictOfInterest"
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={handleFileChange}
+              />
+              <input
+                id="conflictOfInterestUrl"
+                name="conflictOfInterestUrl"
+                type="text"
+                placeholder="Atau tautan Google Drive / Cloud (opsional jika berkas sudah diunggah)"
+                onBlur={(e) => {
+                  if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
+                }}
+              />
+            </div>
+          </div>
+
+          {/* SAINTEK Items 5 & 6 */}
+          {panelType === 'SAINTEK' && (
+            <>
+              {/* 5. Dokumen Pendukung (opsional) */}
+              <div className="field rounded-xl border border-(--border) bg-(--surface) p-4 mb-4">
+                <label htmlFor="supportingDocuments" className="text-sm font-semibold text-(--text) flex items-center justify-between">
+                  <span>5. Dokumen Pendukung (opsional)</span>
+                  <span className="text-[0.7rem] text-(--muted) font-normal">Opsional (dapat lebih dari satu)</span>
+                </label>
+                <div className="mt-2 space-y-2">
+                  <input
+                    id="supportingDocuments"
+                    name="supportingDocuments"
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                  />
+                  <input
+                    id="supportingDocumentUrl"
+                    name="supportingDocumentUrl"
+                    type="text"
+                    placeholder="Atau tautan Google Drive / Cloud (opsional)"
+                    onBlur={(e) => {
+                      if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 6. Informed Consent (opsional) */}
+              <div className="field rounded-xl border border-(--border) bg-(--surface) p-4 mb-4">
+                <label htmlFor="informedConsent" className="text-sm font-semibold text-(--text) flex items-center justify-between">
+                  <span>6. Lembar Informed Consent (opsional)</span>
+                  <span className="text-[0.7rem] text-(--muted) font-normal">Opsional (.pdf / .doc / .docx)</span>
+                </label>
+                <div className="mt-2 space-y-2">
+                  <input
+                    id="informedConsent"
+                    name="informedConsent"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                  />
+                  <input
+                    id="informedConsentUrl"
+                    name="informedConsentUrl"
+                    type="text"
+                    placeholder="Atau tautan Google Drive / Cloud (opsional)"
+                    onBlur={(e) => {
+                      if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
+                    }}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* SOSHUM Items 5, 6, 7 */}
+          {panelType === 'SOSHUM' && (
+            <>
+              {/* 5. Informed Consent (opsional) */}
+              <div className="field rounded-xl border border-(--border) bg-(--surface) p-4 mb-4">
+                <label htmlFor="informedConsent" className="text-sm font-semibold text-(--text) flex items-center justify-between">
+                  <span>5. Lembar Informed Consent (opsional)</span>
+                  <span className="text-[0.7rem] text-(--muted) font-normal">Opsional (.pdf / .doc / .docx)</span>
+                </label>
+                <div className="mt-2 space-y-2">
+                  <input
+                    id="informedConsent"
+                    name="informedConsent"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                  />
+                  <input
+                    id="informedConsentUrl"
+                    name="informedConsentUrl"
+                    type="text"
+                    placeholder="Atau tautan Google Drive / Cloud (opsional)"
+                    onBlur={(e) => {
+                      if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 6. Dokumen Pendukung (opsional) */}
+              <div className="field rounded-xl border border-(--border) bg-(--surface) p-4 mb-4">
+                <label htmlFor="supportingDocuments" className="text-sm font-semibold text-(--text) flex items-center justify-between">
+                  <span>6. Dokumen Pendukung (opsional)</span>
+                  <span className="text-[0.7rem] text-(--muted) font-normal">Opsional (dapat lebih dari satu)</span>
+                </label>
+                <div className="mt-2 space-y-2">
+                  <input
+                    id="supportingDocuments"
+                    name="supportingDocuments"
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                  />
+                  <input
+                    id="supportingDocumentUrl"
+                    name="supportingDocumentUrl"
+                    type="text"
+                    placeholder="Atau tautan Google Drive / Cloud (opsional)"
+                    onBlur={(e) => {
+                      if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 7. Instrumen Penelitian (Wajib untuk SOSHUM) */}
+              <div className="field rounded-xl border border-(--border) bg-(--surface) p-4 mb-4">
+                <label htmlFor="researchInstrument" className="text-sm font-semibold text-(--text) flex items-center justify-between">
+                  <span>7. Instrumen Penelitian <span className="text-(--error)">*</span></span>
+                  <span className="text-[0.7rem] text-(--muted) font-normal">Wajib (.pdf / .doc / .docx)</span>
+                </label>
+                <div className="mt-2 space-y-2">
+                  <input
+                    id="researchInstrument"
+                    name="researchInstrument"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                  />
+                  <input
+                    id="researchInstrumentUrl"
+                    name="researchInstrumentUrl"
+                    type="text"
+                    placeholder="Atau tautan Google Drive / Cloud (opsional jika berkas sudah diunggah)"
+                    onBlur={(e) => {
+                      if (e.target.value.trim()) e.target.value = autoPrefixUrl(e.target.value);
+                    }}
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      </div>
 
         {/* Bottom Error & Success Notification (Visible right above submit button) */}
         {error && <div className="alert error mt-4 mb-2">{error}</div>}

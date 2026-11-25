@@ -41,32 +41,9 @@ type PanelUrlField =
   | 'informedConsentUrl'
   | 'researchInstrumentUrl';
 
-// SAINTEK and SOSHUM share most panel fields (proposer, institution,
-// proposal, leader statement, conflict-of-interest, optional supporting
-// doc) but each also has document links the other doesn't - SAINTEK's own
-// application form vs. SOSHUM's application form + informed consent +
-// research instrument. This table drives which links are required per panel.
-const REQUIRED_URL_FIELDS_BY_PANEL: Record<'SAINTEK' | 'SOSHUM', Array<[PanelUrlField, string]>> = {
-  SAINTEK: [
-    ['saintekFormUrl', 'Formulir Aplikasi Saintek'],
-    ['proposalUrl', 'Proposal Penelitian'],
-    ['leaderStatementUrl', 'Formulir Pernyataan Ketua Peneliti/Kegiatan Ilmiah'],
-    ['conflictOfInterestUrl', 'Formulir Pernyataan Konflik Kepentingan'],
-  ],
-  SOSHUM: [
-    ['soshumFormUrl', 'Formulir Aplikasi Telaah Etik'],
-    ['proposalUrl', 'Proposal Penelitian'],
-    ['leaderStatementUrl', 'Formulir Pernyataan Ketua Peneliti/Kegiatan Ilmiah'],
-    ['conflictOfInterestUrl', 'Formulir Pernyataan Konflik Kepentingan'],
-    ['informedConsentUrl', 'Lembar Informed Consent'],
-    ['researchInstrumentUrl', 'Instrumen Penelitian'],
-  ],
-};
-
-// Milestone 1 — Researcher submits an application with the Research
-// Protocol (required) and optional supporting documents. Sets the
-// Milestone 2 secretariat-review deadline (2 working days) at creation
-// time so the Secretariat's queue is enforceable from the start.
+// Milestone 1 — Researcher submits an application with required documents
+// (via direct file upload and/or cloud storage links). Sets the Milestone 2
+// secretariat-review deadline (2 working days) at creation time.
 export async function submitApplication(formData: FormData): Promise<SubmitApplicationResult> {
   const session = await getServerSession(authOptions);
   const sessionUser = session?.user;
@@ -77,66 +54,99 @@ export async function submitApplication(formData: FormData): Promise<SubmitAppli
 
   const title = formData.get('title');
   const researchType = formData.get('researchType');
-  const researchProtocol = formData.get('researchProtocol');
-  const informedConsent = formData.get('informedConsent');
-  const cvResearcher = formData.get('cvResearcher');
-  const supportingDocuments = formData.getAll('supportingDocuments');
-
-  if (typeof title !== 'string' || title.trim().length === 0) {
-    return { success: false, error: 'Research title is required.' };
-  }
-  if (!isUploadedFile(researchProtocol)) {
-    return { success: false, error: 'Berkas Proposal Penelitian wajib diunggah.' };
-  }
-
   const panelType = formData.get('panelType');
-  if (panelType !== 'SAINTEK' && panelType !== 'SOSHUM') {
-    return { success: false, error: 'Panel type is required.' };
-  }
-
   const proposerName = formData.get('proposerName');
   const institution = formData.get('institution');
+
+  if (typeof title !== 'string' || title.trim().length === 0) {
+    return { success: false, error: 'Judul penelitian/usulan wajib diisi.' };
+  }
+  if (panelType !== 'SAINTEK' && panelType !== 'SOSHUM') {
+    return { success: false, error: 'Jenis panel wajib dipilih.' };
+  }
   if (typeof proposerName !== 'string' || proposerName.trim().length === 0) {
-    return { success: false, error: 'Nama Pengusul/Ketua Peneliti/Kegiatan Ilmiah is required.' };
+    return { success: false, error: 'Nama Pengusul/Ketua Peneliti wajib diisi.' };
   }
   if (typeof institution !== 'string' || institution.trim().length === 0) {
-    return { success: false, error: 'Universitas/Institusi is required.' };
+    return { success: false, error: 'Universitas/Institusi wajib diisi.' };
   }
 
-  const urlValues: Partial<Record<PanelUrlField, string>> = {};
-  for (const [field, label] of REQUIRED_URL_FIELDS_BY_PANEL[panelType]) {
-    const raw = formData.get(field);
-    const normalized = normalizeUrl(raw);
-    if (!normalized) {
-      return { success: false, error: `Tautan valid untuk ${label} wajib diisi (mis. https://drive.google.com/...).` };
+  // Uploaded files
+  const proposalFile = (formData.get('proposal') || formData.get('researchProtocol')) as FormDataEntryValue | null;
+  const saintekFormFile = (formData.get('saintekForm') || formData.get('applicationForm')) as FormDataEntryValue | null;
+  const soshumFormFile = (formData.get('soshumForm') || formData.get('applicationForm')) as FormDataEntryValue | null;
+  const leaderStatementFile = (formData.get('leaderStatement') || formData.get('leaderStatementFile')) as FormDataEntryValue | null;
+  const conflictOfInterestFile = (formData.get('conflictOfInterest') || formData.get('conflictOfInterestFile')) as FormDataEntryValue | null;
+  const informedConsentFile = (formData.get('informedConsent') || formData.get('informedConsentFile')) as FormDataEntryValue | null;
+  const researchInstrumentFile = (formData.get('researchInstrument') || formData.get('researchInstrumentFile')) as FormDataEntryValue | null;
+  const supportingDocuments = formData.getAll('supportingDocuments');
+
+  // Cloud URL links (optional if files are uploaded)
+  const proposalUrl = normalizeUrl(formData.get('proposalUrl'));
+  const saintekFormUrl = normalizeUrl(formData.get('saintekFormUrl'));
+  const soshumFormUrl = normalizeUrl(formData.get('soshumFormUrl'));
+  const leaderStatementUrl = normalizeUrl(formData.get('leaderStatementUrl'));
+  const conflictOfInterestUrl = normalizeUrl(formData.get('conflictOfInterestUrl'));
+  const informedConsentUrl = normalizeUrl(formData.get('informedConsentUrl'));
+  const researchInstrumentUrl = normalizeUrl(formData.get('researchInstrumentUrl'));
+  const supportingDocumentUrl = normalizeUrl(formData.get('supportingDocumentUrl'));
+
+  // Validate requirement completeness (must have uploaded file OR valid link)
+  if (!isUploadedFile(proposalFile) && !proposalUrl) {
+    return { success: false, error: 'Proposal Penelitian wajib diunggah atau dicantumkan tautannya.' };
+  }
+
+  if (panelType === 'SAINTEK') {
+    if (!isUploadedFile(saintekFormFile) && !saintekFormUrl) {
+      return { success: false, error: 'Formulir Aplikasi Saintek (Word) wajib diunggah atau dicantumkan tautannya.' };
     }
-    urlValues[field] = normalized;
+  } else {
+    if (!isUploadedFile(soshumFormFile) && !soshumFormUrl) {
+      return { success: false, error: 'Formulir Aplikasi Telaah Etik (Word) wajib diunggah atau dicantumkan tautannya.' };
+    }
   }
 
-  const supportingDocumentUrlRaw = formData.get('supportingDocumentUrl');
-  const normalizedSupportingUrl = normalizeUrl(supportingDocumentUrlRaw);
-  if (
-    typeof supportingDocumentUrlRaw === 'string' &&
-    supportingDocumentUrlRaw.trim().length > 0 &&
-    !normalizedSupportingUrl
-  ) {
-    return { success: false, error: 'Tautan dokumen pendukung bukan URL yang valid.' };
+  if (!isUploadedFile(leaderStatementFile) && !leaderStatementUrl) {
+    return { success: false, error: 'Formulir Pernyataan Ketua Peneliti wajib diunggah atau dicantumkan tautannya.' };
   }
 
-  const panelFields = {
-    proposerName: proposerName.trim(),
-    institution: institution.trim(),
-    ...urlValues,
-    supportingDocumentUrl: normalizedSupportingUrl,
-  };
+  if (!isUploadedFile(conflictOfInterestFile) && !conflictOfInterestUrl) {
+    return { success: false, error: 'Formulir Pernyataan Konflik Kepentingan wajib diunggah atau dicantumkan tautannya.' };
+  }
 
-  const uploads: Array<{ file: File; documentType: DocumentType }> = [
-    { file: researchProtocol, documentType: 'RESEARCH_PROTOCOL' },
-  ];
-  if (isUploadedFile(informedConsent)) uploads.push({ file: informedConsent, documentType: 'INFORMED_CONSENT' });
-  if (isUploadedFile(cvResearcher)) uploads.push({ file: cvResearcher, documentType: 'CV_RESEARCHER' });
+  if (panelType === 'SOSHUM') {
+    if (!isUploadedFile(researchInstrumentFile) && !researchInstrumentUrl) {
+      return { success: false, error: 'Instrumen Penelitian wajib diunggah atau dicantumkan tautannya.' };
+    }
+  }
+
+  const uploads: Array<{ file: File; documentType: DocumentType; targetFieldKey: string }> = [];
+
+  if (isUploadedFile(proposalFile)) {
+    uploads.push({ file: proposalFile, documentType: 'RESEARCH_PROTOCOL', targetFieldKey: 'proposalUrl' });
+  }
+  if (panelType === 'SAINTEK' && isUploadedFile(saintekFormFile)) {
+    uploads.push({ file: saintekFormFile, documentType: 'APPLICATION_FORM', targetFieldKey: 'saintekFormUrl' });
+  }
+  if (panelType === 'SOSHUM' && isUploadedFile(soshumFormFile)) {
+    uploads.push({ file: soshumFormFile, documentType: 'APPLICATION_FORM', targetFieldKey: 'soshumFormUrl' });
+  }
+  if (isUploadedFile(leaderStatementFile)) {
+    uploads.push({ file: leaderStatementFile, documentType: 'LEADER_STATEMENT', targetFieldKey: 'leaderStatementUrl' });
+  }
+  if (isUploadedFile(conflictOfInterestFile)) {
+    uploads.push({ file: conflictOfInterestFile, documentType: 'CONFLICT_OF_INTEREST', targetFieldKey: 'conflictOfInterestUrl' });
+  }
+  if (isUploadedFile(informedConsentFile)) {
+    uploads.push({ file: informedConsentFile, documentType: 'INFORMED_CONSENT', targetFieldKey: 'informedConsentUrl' });
+  }
+  if (panelType === 'SOSHUM' && isUploadedFile(researchInstrumentFile)) {
+    uploads.push({ file: researchInstrumentFile, documentType: 'RESEARCH_INSTRUMENT', targetFieldKey: 'researchInstrumentUrl' });
+  }
   for (const entry of supportingDocuments) {
-    if (isUploadedFile(entry)) uploads.push({ file: entry, documentType: 'SUPPORTING_DOCUMENT' });
+    if (isUploadedFile(entry)) {
+      uploads.push({ file: entry, documentType: 'SUPPORTING_DOCUMENT', targetFieldKey: 'supportingDocumentUrl' });
+    }
   }
 
   const secretariatDeadline = addWorkingDays(new Date(), SECRETARIAT_CHECK_DEADLINE_DAYS);
@@ -145,7 +155,13 @@ export async function submitApplication(formData: FormData): Promise<SubmitAppli
     const applicationNumber = generateApplicationNumber();
 
     const savedDocuments = await Promise.all(
-      uploads.map(({ file, documentType }) => persistUpload(file, applicationNumber, documentType)),
+      uploads.map(async ({ file, documentType, targetFieldKey }) => {
+        const persisted = await persistUpload(file, applicationNumber, documentType);
+        return {
+          ...persisted,
+          targetFieldKey,
+        };
+      }),
     );
 
     try {
@@ -159,15 +175,55 @@ export async function submitApplication(formData: FormData): Promise<SubmitAppli
             researcherId: sessionUser.id as string,
             secretariatDeadline,
             panelType,
-            ...panelFields,
-            documents: {
-              create: savedDocuments.map((doc) => ({
-                ...doc,
-                uploadedById: sessionUser.id as string,
-              })),
-            },
+            proposerName: proposerName.trim(),
+            institution: institution.trim(),
+            proposalUrl,
+            saintekFormUrl: panelType === 'SAINTEK' ? saintekFormUrl : null,
+            soshumFormUrl: panelType === 'SOSHUM' ? soshumFormUrl : null,
+            leaderStatementUrl,
+            conflictOfInterestUrl,
+            informedConsentUrl,
+            researchInstrumentUrl: panelType === 'SOSHUM' ? researchInstrumentUrl : null,
+            supportingDocumentUrl,
           },
         });
+
+        const createdDocs = await Promise.all(
+          savedDocuments.map((doc) =>
+            tx.document.create({
+              data: {
+                applicationId: created.id,
+                documentType: doc.documentType,
+                fileName: doc.fileName,
+                filePath: doc.filePath,
+                fileSize: doc.fileSize,
+                mimeType: doc.mimeType,
+                uploadedById: sessionUser.id as string,
+              },
+            }),
+          ),
+        );
+
+        // If any URL field was not manually provided, link it to the uploaded document
+        const updates: Partial<Record<PanelUrlField | 'supportingDocumentUrl', string>> = {};
+        for (let i = 0; i < savedDocuments.length; i++) {
+          const item = savedDocuments[i];
+          const doc = createdDocs[i];
+          const fieldKey = item.targetFieldKey as PanelUrlField | 'supportingDocumentUrl';
+          if (fieldKey && !created[fieldKey as keyof typeof created] && !updates[fieldKey]) {
+            const docUrl = item.filePath.startsWith('http://') || item.filePath.startsWith('https://')
+              ? item.filePath
+              : `/api/documents/${doc.id}`;
+            updates[fieldKey] = docUrl;
+          }
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await tx.application.update({
+            where: { id: created.id },
+            data: updates,
+          });
+        }
 
         await tx.applicationStatusHistory.create({
           data: {

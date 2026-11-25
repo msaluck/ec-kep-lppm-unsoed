@@ -39,8 +39,11 @@ export function AddDocumentForm({ applicationId }: { applicationId: string }) {
           <label htmlFor="documentType">Jenis Dokumen</label>
           <select id="documentType" name="documentType" defaultValue="SUPPORTING_DOCUMENT">
             <option value="RESEARCH_PROTOCOL">Proposal Penelitian</option>
+            <option value="APPLICATION_FORM">Formulir Aplikasi (Word)</option>
+            <option value="LEADER_STATEMENT">Formulir Pernyataan Ketua</option>
+            <option value="CONFLICT_OF_INTEREST">Formulir Pernyataan Konflik Kepentingan</option>
             <option value="INFORMED_CONSENT">Informed Consent</option>
-            <option value="CV_RESEARCHER">CV Peneliti</option>
+            <option value="RESEARCH_INSTRUMENT">Instrumen Penelitian</option>
             <option value="SUPPORTING_DOCUMENT">Dokumen Pendukung Lainnya</option>
           </select>
         </div>
