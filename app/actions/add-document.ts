@@ -25,50 +25,58 @@ type AddDocumentResult = { success: true } | { success: false; error: string };
 // only before the Secretariat has acted (status SUBMITTED) - paired with
 // delete-document.ts to cover "replace a wrong upload".
 export async function addDocument(formData: FormData): Promise<AddDocumentResult> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id || session.user.role !== 'RESEARCHER') {
-    return { success: false, error: 'Unauthorized: only the submitting researcher may manage documents.' };
-  }
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || session.user.role !== 'RESEARCHER') {
+      return { success: false, error: 'Unauthorized: only the submitting researcher may manage documents.' };
+    }
 
-  const applicationId = formData.get('applicationId');
-  const documentTypeRaw = formData.get('documentType');
-  const file = formData.get('file');
+    const applicationId = formData.get('applicationId');
+    const documentTypeRaw = formData.get('documentType');
+    const file = formData.get('file');
 
-  if (typeof applicationId !== 'string' || applicationId.length === 0) {
-    return { success: false, error: 'Missing applicationId.' };
-  }
-  const parsedType = AddDocumentDocumentType.safeParse(documentTypeRaw);
-  if (!parsedType.success) {
-    return { success: false, error: 'Invalid document type.' };
-  }
-  if (!isUploadedFile(file)) {
-    return { success: false, error: 'A file is required.' };
-  }
+    if (typeof applicationId !== 'string' || applicationId.length === 0) {
+      return { success: false, error: 'Missing applicationId.' };
+    }
+    const parsedType = AddDocumentDocumentType.safeParse(documentTypeRaw);
+    if (!parsedType.success) {
+      return { success: false, error: 'Invalid document type.' };
+    }
+    if (!isUploadedFile(file)) {
+      return { success: false, error: 'A file is required.' };
+    }
 
-  const application = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!application) {
-    return { success: false, error: 'Application not found.' };
-  }
-  if (application.researcherId !== session.user.id) {
-    return { success: false, error: 'You may only manage documents on your own application.' };
-  }
-  if (application.status !== 'SUBMITTED') {
+    const application = await prisma.application.findUnique({ where: { id: applicationId } });
+    if (!application) {
+      return { success: false, error: 'Application not found.' };
+    }
+    if (application.researcherId !== session.user.id) {
+      return { success: false, error: 'You may only manage documents on your own application.' };
+    }
+    if (application.status !== 'SUBMITTED') {
+      return {
+        success: false,
+        error: 'Documents can only be changed while the application is awaiting the Secretariat\'s completeness check.',
+      };
+    }
+
+    const saved = await persistUpload(file, application.applicationNumber, parsedType.data);
+
+    await prisma.document.create({
+      data: {
+        ...saved,
+        applicationId: application.id,
+        uploadedById: session.user.id,
+      },
+    });
+
+    revalidatePath(`/applications/${application.id}`);
+    return { success: true };
+  } catch (err) {
+    console.error('addDocument error:', err);
     return {
       success: false,
-      error: 'Documents can only be changed while the application is awaiting the Secretariat\'s completeness check.',
+      error: err instanceof Error ? err.message : 'Terjadi kendala saat menambahkan dokumen.',
     };
   }
-
-  const saved = await persistUpload(file, application.applicationNumber, parsedType.data);
-
-  await prisma.document.create({
-    data: {
-      ...saved,
-      applicationId: application.id,
-      uploadedById: session.user.id,
-    },
-  });
-
-  revalidatePath(`/applications/${application.id}`);
-  return { success: true };
 }

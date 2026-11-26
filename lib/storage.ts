@@ -11,8 +11,12 @@ const useBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 
 // Local-disk fallback root. Defaults to public/uploads for local dev; on
 // the CloudPanel VPS this should be set to a path outside the web-served
-// tree, e.g. UPLOAD_DIR=/home/cloudpanel/htdocs/<site>/storage/uploads
-export const UPLOAD_DIR = process.env.UPLOAD_DIR ?? path.join(process.cwd(), 'public', 'uploads');
+// tree, e.g. UPLOAD_DIR=/home/cloudpanel/htdocs/<site>/storage/uploads.
+// On Vercel Serverless (where /var/task is strictly read-only), default to
+// /tmp/uploads to prevent EROFS errors if BLOB_READ_WRITE_TOKEN is missing.
+export const UPLOAD_DIR =
+  process.env.UPLOAD_DIR ??
+  (process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'public', 'uploads'));
 
 function resolveUploadPath(relativePath: string): string {
   return path.join(UPLOAD_DIR, relativePath);
@@ -22,8 +26,15 @@ function resolveUploadPath(relativePath: string): string {
 // a Blob URL on Vercel, or the original relative path on local disk.
 export async function writeFile(relativePath: string, data: Buffer, contentType: string): Promise<string> {
   if (useBlob) {
-    const blob = await put(relativePath, data, { access: 'public', contentType, addRandomSuffix: true });
-    return blob.url;
+    try {
+      const blob = await put(relativePath, data, { access: 'public', contentType, addRandomSuffix: true });
+      return blob.url;
+    } catch (blobErr) {
+      console.error('Vercel Blob upload failed, falling back to local/tmp storage:', blobErr);
+      if (!process.env.VERCEL) {
+        throw blobErr;
+      }
+    }
   }
 
   const absolutePath = resolveUploadPath(relativePath);
@@ -50,10 +61,14 @@ export async function readFile(storedPath: string): Promise<Buffer> {
 // treat "already gone" as a non-error, since the DB row is the source of
 // truth either way.
 export async function deleteFile(storedPath: string): Promise<void> {
-  if (storedPath.startsWith('http://') || storedPath.startsWith('https://')) {
-    await del(storedPath);
-    return;
-  }
+  try {
+    if (storedPath.startsWith('http://') || storedPath.startsWith('https://')) {
+      await del(storedPath);
+      return;
+    }
 
-  await fs.unlink(resolveUploadPath(storedPath));
+    await fs.unlink(resolveUploadPath(storedPath));
+  } catch (err) {
+    console.warn(`Failed to delete file "${storedPath}":`, err);
+  }
 }

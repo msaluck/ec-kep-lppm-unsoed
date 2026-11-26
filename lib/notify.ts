@@ -41,17 +41,21 @@ export async function sendAndLogNotification(input: SendAndLogNotificationInput)
     errorMessage = err instanceof Error ? err.message : 'Unknown error sending email';
   }
 
-  await prisma.notificationLog.create({
-    data: {
-      applicationId: input.applicationId,
-      userId: input.userId,
-      recipientEmail: input.to,
-      event: input.event,
-      subject: input.subject,
-      status,
-      resendMessageId,
-      errorMessage,
-      sentAt: status === 'SENT' ? new Date() : null,
-    },
-  });
+  try {
+    await prisma.notificationLog.create({
+      data: {
+        applicationId: input.applicationId,
+        userId: input.userId,
+        recipientEmail: input.to,
+        event: input.event,
+        subject: input.subject,
+        status,
+        resendMessageId,
+        errorMessage,
+        sentAt: status === 'SENT' ? new Date() : null,
+      },
+    });
+  } catch (logErr) {
+    console.error('Failed to write notificationLog:', logErr);
+  }
 }

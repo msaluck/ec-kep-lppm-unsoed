@@ -22,20 +22,28 @@ export async function persistUpload(
   applicationNumber: string,
   documentType: DocumentType,
 ): Promise<PersistedUpload> {
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const mimeType = file.type || 'application/octet-stream';
-  const relativePath = path.join(
-    'applications',
-    applicationNumber,
-    `${documentType.toLowerCase()}-${Date.now()}-${file.name}`,
-  );
-  const storedPath = await writeFile(relativePath, buffer, mimeType);
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const mimeType = file.type || 'application/octet-stream';
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const relativePath = path.join(
+      'applications',
+      applicationNumber,
+      `${documentType.toLowerCase()}-${Date.now()}-${sanitizedFileName}`,
+    );
+    const storedPath = await writeFile(relativePath, buffer, mimeType);
 
-  return {
-    documentType,
-    fileName: file.name,
-    filePath: storedPath,
-    fileSize: buffer.byteLength,
-    mimeType,
-  };
+    return {
+      documentType,
+      fileName: file.name,
+      filePath: storedPath,
+      fileSize: buffer.byteLength,
+      mimeType,
+    };
+  } catch (err) {
+    console.error(`Failed to persist upload for ${file.name}:`, err);
+    throw new Error(
+      `Gagal menyimpan berkas "${file.name}": ${err instanceof Error ? err.message : 'Kendala penyimpanan'}`,
+    );
+  }
 }

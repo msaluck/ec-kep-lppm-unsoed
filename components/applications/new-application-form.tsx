@@ -13,7 +13,8 @@ type NewApplicationFormProps = {
   institution: string;
 };
 
-const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024; // 4.5 MB serverless upload threshold
+const MAX_TOTAL_UPLOAD_BYTES = 4.5 * 1024 * 1024; // 4.5 MB total request payload threshold
 
 function autoPrefixUrl(raw: string): string {
   const trimmed = raw.trim();
@@ -41,7 +42,7 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
       const file = files[i];
       if (file.size > MAX_FILE_SIZE_BYTES) {
         setError(
-          `Ukuran berkas "${file.name}" (${(file.size / (1024 * 1024)).toFixed(1)}MB) melebihi batas 25MB. Harap kompres berkas PDF Anda terlebih dahulu.`,
+          `Ukuran berkas "${file.name}" (${(file.size / (1024 * 1024)).toFixed(1)}MB) melebihi batas 4.5MB untuk unggah langsung. Harap kompres berkas Anda atau gunakan kolom tautan Google Drive / Cloud storage pada kolom di bawahnya.`,
         );
         event.target.value = '';
         topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -90,16 +91,29 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
       // Helper check for uploaded file
       const hasFile = (val: FormDataEntryValue | null) => val instanceof File && val.size > 0;
 
-      // Check all uploaded files for 25MB limit
+      // Check all uploaded files for 4.5MB limit per file and total
+      let totalUploadBytes = 0;
       for (const [, value] of formData.entries()) {
         if (value instanceof File && value.size > 0) {
+          totalUploadBytes += value.size;
           if (value.size > MAX_FILE_SIZE_BYTES) {
-            setError(`Ukuran berkas "${value.name}" melebihi batas 25MB. Silakan kompres berkas terlebih dahulu.`);
+            setError(
+              `Ukuran berkas "${value.name}" (${(value.size / (1024 * 1024)).toFixed(1)}MB) melebihi batas 4.5MB. Silakan kompres berkas terlebih dahulu atau gunakan tautan Google Drive / Cloud.`,
+            );
             setIsSubmitting(false);
             topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
             return;
           }
         }
+      }
+
+      if (totalUploadBytes > MAX_TOTAL_UPLOAD_BYTES) {
+        setError(
+          `Total ukuran berkas yang diunggah (${(totalUploadBytes / (1024 * 1024)).toFixed(1)}MB) melebihi batas 4.5MB untuk unggah langsung ke server. Silakan kompres berkas Anda, atau cantumkan tautan Google Drive / Cloud storage untuk dokumen yang berukuran besar.`,
+        );
+        setIsSubmitting(false);
+        topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
+        return;
       }
 
       // Validate required documents (must have file OR valid URL)
@@ -169,11 +183,16 @@ export function NewApplicationForm({ proposerName, email, phone, institution }: 
       router.push(`/applications/${result.applicationId}?submitted=1`);
     } catch (err) {
       console.error('Submission error:', err);
-      setError(
-        err instanceof Error
-          ? `Gagal mengirim pengajuan: ${err.message}`
-          : 'Terjadi kendala saat mengirim pengajuan. Silakan periksa koneksi internet Anda dan coba lagi.',
-      );
+      let message = 'Terjadi kendala saat mengirim pengajuan. Silakan periksa koneksi internet Anda atau gunakan tautan Google Drive / Cloud.';
+      if (err instanceof Error) {
+        if (err.message.includes('Server Components render') || err.message.includes('digest')) {
+          message =
+            'Gagal memproses berkas pengajuan di server. Mohon pastikan ukuran berkas yang diunggah tidak melebihi 4.5MB, atau cantumkan tautan Google Drive / Cloud Storage pada kolom yang disediakan.';
+        } else {
+          message = `Gagal mengirim pengajuan: ${err.message}`;
+        }
+      }
+      setError(message);
       setIsSubmitting(false);
       topAlertRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
