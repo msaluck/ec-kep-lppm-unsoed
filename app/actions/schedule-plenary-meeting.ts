@@ -70,44 +70,47 @@ export async function schedulePlenaryMeeting(
     return { success: false, error: 'One or more internal participants were not found.' };
   }
 
-  const meeting = await prisma.$transaction(async (tx) => {
-    const created = await tx.plenaryMeeting.create({
-      data: {
-        applicationId,
-        scheduledAt,
-        location,
-        participants: {
-          create: participants.map((p) =>
-            p.userId
-              ? { userId: p.userId, isExternal: false }
-              : {
-                  externalName: p.externalName,
-                  externalInstitution: p.externalInstitution,
-                  externalEmail: p.externalEmail,
-                  isExternal: true,
-                },
-          ),
+  const meeting = await prisma.$transaction(
+    async (tx) => {
+      const created = await tx.plenaryMeeting.create({
+        data: {
+          applicationId,
+          scheduledAt,
+          location,
+          participants: {
+            create: participants.map((p) =>
+              p.userId
+                ? { userId: p.userId, isExternal: false }
+                : {
+                    externalName: p.externalName,
+                    externalInstitution: p.externalInstitution,
+                    externalEmail: p.externalEmail,
+                    isExternal: true,
+                  },
+            ),
+          },
         },
-      },
-    });
+      });
 
-    await tx.application.update({
-      where: { id: applicationId },
-      data: { status: 'FULL_BOARD_MEETING' },
-    });
+      await tx.application.update({
+        where: { id: applicationId },
+        data: { status: 'FULL_BOARD_MEETING' },
+      });
 
-    await tx.applicationStatusHistory.create({
-      data: {
-        applicationId,
-        fromStatus: 'FULL_BOARD_SCHEDULING',
-        toStatus: 'FULL_BOARD_MEETING',
-        actorId: sessionUser.id,
-        notes: location ? `Rapat Pleno dijadwalkan di ${location}.` : 'Rapat Pleno dijadwalkan.',
-      },
-    });
+      await tx.applicationStatusHistory.create({
+        data: {
+          applicationId,
+          fromStatus: 'FULL_BOARD_SCHEDULING',
+          toStatus: 'FULL_BOARD_MEETING',
+          actorId: sessionUser.id,
+          notes: location ? `Rapat Pleno dijadwalkan di ${location}.` : 'Rapat Pleno dijadwalkan.',
+        },
+      });
 
-    return created;
-  });
+      return created;
+    },
+    { maxWait: 15000, timeout: 30000 },
+  );
 
   const scheduledDateLabel = scheduledAt.toLocaleString('id-ID');
 

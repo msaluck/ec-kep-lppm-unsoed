@@ -65,44 +65,47 @@ export async function submitReviewVote(
   const now = new Date();
   let finalDecisionDeadline: Date | null = null;
 
-  const reviewComplete = await prisma.$transaction(async (tx) => {
-    await tx.reviewAssignment.update({
-      where: { id: assignment.id },
-      data: { vote, comments, votedAt: now },
-    });
-
-    if (application.status === 'EXPEDITED_ASSIGNED') {
-      await tx.application.update({
-        where: { id: application.id },
-        data: { status: 'EXPEDITED_REVIEWING' },
+  const reviewComplete = await prisma.$transaction(
+    async (tx) => {
+      await tx.reviewAssignment.update({
+        where: { id: assignment.id },
+        data: { vote, comments, votedAt: now },
       });
-    }
 
-    const remainingVotes = await tx.reviewAssignment.count({
-      where: { applicationId, vote: 'PENDING' },
-    });
-    const allVoted = remainingVotes === 0;
+      if (application.status === 'EXPEDITED_ASSIGNED') {
+        await tx.application.update({
+          where: { id: application.id },
+          data: { status: 'EXPEDITED_REVIEWING' },
+        });
+      }
 
-    if (allVoted) {
-      finalDecisionDeadline = addWorkingDays(now, FINAL_DECISION_DEADLINE_DAYS);
-      await tx.application.update({
-        where: { id: application.id },
-        data: { status: 'PENDING_FINAL_DECISION', finalDecisionDeadline },
+      const remainingVotes = await tx.reviewAssignment.count({
+        where: { applicationId, vote: 'PENDING' },
       });
-      await tx.applicationStatusHistory.create({
-        data: {
-          applicationId,
-          fromStatus: 'EXPEDITED_REVIEWING',
-          toStatus: 'PENDING_FINAL_DECISION',
-          actorId: sessionUser.id,
-          notes: 'All reviewer votes received.',
-          deadlineAt: finalDecisionDeadline,
-        },
-      });
-    }
+      const allVoted = remainingVotes === 0;
 
-    return allVoted;
-  });
+      if (allVoted) {
+        finalDecisionDeadline = addWorkingDays(now, FINAL_DECISION_DEADLINE_DAYS);
+        await tx.application.update({
+          where: { id: application.id },
+          data: { status: 'PENDING_FINAL_DECISION', finalDecisionDeadline },
+        });
+        await tx.applicationStatusHistory.create({
+          data: {
+            applicationId,
+            fromStatus: 'EXPEDITED_REVIEWING',
+            toStatus: 'PENDING_FINAL_DECISION',
+            actorId: sessionUser.id,
+            notes: 'All reviewer votes received.',
+            deadlineAt: finalDecisionDeadline,
+          },
+        });
+      }
+
+      return allVoted;
+    },
+    { maxWait: 15000, timeout: 30000 },
+  );
 
   if (reviewComplete && application.chairman) {
     await sendAndLogNotification({

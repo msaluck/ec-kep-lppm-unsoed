@@ -72,34 +72,37 @@ export async function resubmitRevision(formData: FormData): Promise<ResubmitRevi
     const nextStatus = round === 1 ? 'REVISION_1_SUBMITTED' : 'REVISION_2_SUBMITTED';
     const finalDecisionDeadline = addWorkingDays(new Date(), REVISION_ROUND_DEADLINE_DAYS[round - 1]);
 
-    await prisma.$transaction(async (tx) => {
-      await tx.application.update({
-        where: { id: application.id },
-        data: {
-          status: nextStatus,
-          resubmissionDeadline: null,
-          finalDecisionDeadline,
-          documents: {
-            create: savedDocuments.map((doc) => ({
-              ...doc,
-              revisionRound: round,
-              uploadedById: sessionUser.id as string,
-            })),
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.application.update({
+          where: { id: application.id },
+          data: {
+            status: nextStatus,
+            resubmissionDeadline: null,
+            finalDecisionDeadline,
+            documents: {
+              create: savedDocuments.map((doc) => ({
+                ...doc,
+                revisionRound: round,
+                uploadedById: sessionUser.id as string,
+              })),
+            },
           },
-        },
-      });
+        });
 
-      await tx.applicationStatusHistory.create({
-        data: {
-          applicationId: application.id,
-          fromStatus: 'REVISION_REQUIRED',
-          toStatus: nextStatus,
-          actorId: sessionUser.id,
-          notes: typeof responseNotes === 'string' ? responseNotes : undefined,
-          deadlineAt: finalDecisionDeadline,
-        },
-      });
-    });
+        await tx.applicationStatusHistory.create({
+          data: {
+            applicationId: application.id,
+            fromStatus: 'REVISION_REQUIRED',
+            toStatus: nextStatus,
+            actorId: sessionUser.id,
+            notes: typeof responseNotes === 'string' ? responseNotes : undefined,
+            deadlineAt: finalDecisionDeadline,
+          },
+        });
+      },
+      { maxWait: 15000, timeout: 30000 },
+    );
 
     if (application.chairmanId) {
       const chairman = await prisma.user.findUnique({ where: { id: application.chairmanId } });

@@ -30,41 +30,44 @@ export async function finalizeApprovalWithDocument(input: FinalizeApprovalInput)
   );
   const storedPath = await writeFile(relativePath, input.pdfBuffer, 'application/pdf');
 
-  const document = await prisma.$transaction(async (tx) => {
-    await tx.application.update({
-      where: { id: input.application.id },
-      data: {
-        status: 'APPROVED',
-        decisionType: 'APPROVED',
-        decisionNotes: input.decisionNotes,
-        decidedAt,
-        chairmanId: input.chairmanId,
-      },
-    });
+  const document = await prisma.$transaction(
+    async (tx) => {
+      await tx.application.update({
+        where: { id: input.application.id },
+        data: {
+          status: 'APPROVED',
+          decisionType: 'APPROVED',
+          decisionNotes: input.decisionNotes,
+          decidedAt,
+          chairmanId: input.chairmanId,
+        },
+      });
 
-    await tx.applicationStatusHistory.create({
-      data: {
-        applicationId: input.application.id,
-        fromStatus: input.application.status,
-        toStatus: 'APPROVED',
-        actorId: input.chairmanId,
-        notes: input.decisionNotes,
-      },
-    });
+      await tx.applicationStatusHistory.create({
+        data: {
+          applicationId: input.application.id,
+          fromStatus: input.application.status,
+          toStatus: 'APPROVED',
+          actorId: input.chairmanId,
+          notes: input.decisionNotes,
+        },
+      });
 
-    return tx.document.create({
-      data: {
-        applicationId: input.application.id,
-        documentType: input.documentType,
-        fileName: path.basename(relativePath),
-        filePath: storedPath,
-        fileSize: input.pdfBuffer.byteLength,
-        mimeType: 'application/pdf',
-        revisionRound: input.application.revisionRound,
-        uploadedById: input.chairmanId,
-      },
-    });
-  });
+      return tx.document.create({
+        data: {
+          applicationId: input.application.id,
+          documentType: input.documentType,
+          fileName: path.basename(relativePath),
+          filePath: storedPath,
+          fileSize: input.pdfBuffer.byteLength,
+          mimeType: 'application/pdf',
+          revisionRound: input.application.revisionRound,
+          uploadedById: input.chairmanId,
+        },
+      });
+    },
+    { maxWait: 15000, timeout: 30000 },
+  );
 
   await sendAndLogNotification({
     applicationId: input.application.id,

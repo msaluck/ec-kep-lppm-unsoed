@@ -1,5 +1,6 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { revalidatePath } from 'next/cache';
@@ -166,76 +167,73 @@ export async function submitApplication(formData: FormData): Promise<SubmitAppli
           }),
         );
 
-        const application = await prisma.$transaction(async (tx) => {
-          const created = await tx.application.create({
-            data: {
-              applicationNumber,
-              title: title.trim(),
-              researchType: typeof researchType === 'string' ? researchType : null,
-              status: 'SUBMITTED',
-              researcherId: sessionUser.id as string,
-              secretariatDeadline,
-              panelType,
-              proposerName: proposerName.trim(),
-              institution: institution.trim(),
-              proposalUrl,
-              saintekFormUrl: panelType === 'SAINTEK' ? saintekFormUrl : null,
-              soshumFormUrl: panelType === 'SOSHUM' ? soshumFormUrl : null,
-              leaderStatementUrl,
-              conflictOfInterestUrl,
-              informedConsentUrl,
-              researchInstrumentUrl: panelType === 'SOSHUM' ? researchInstrumentUrl : null,
-              supportingDocumentUrl,
+        // Pre-generate document IDs and compute target URLs in memory
+        let finalProposalUrl = proposalUrl;
+        let finalSaintekFormUrl = saintekFormUrl;
+        let finalSoshumFormUrl = soshumFormUrl;
+        let finalLeaderStatementUrl = leaderStatementUrl;
+        let finalConflictOfInterestUrl = conflictOfInterestUrl;
+        let finalInformedConsentUrl = informedConsentUrl;
+        let finalResearchInstrumentUrl = researchInstrumentUrl;
+        let finalSupportingDocumentUrl = supportingDocumentUrl;
+
+        const docsToCreate = savedDocuments.map((doc) => {
+          const docId = randomUUID();
+          const docUrl = doc.filePath.startsWith('http://') || doc.filePath.startsWith('https://')
+            ? doc.filePath
+            : `/api/documents/${docId}`;
+
+          if (doc.targetFieldKey === 'proposalUrl' && !finalProposalUrl) finalProposalUrl = docUrl;
+          if (doc.targetFieldKey === 'saintekFormUrl' && !finalSaintekFormUrl) finalSaintekFormUrl = docUrl;
+          if (doc.targetFieldKey === 'soshumFormUrl' && !finalSoshumFormUrl) finalSoshumFormUrl = docUrl;
+          if (doc.targetFieldKey === 'leaderStatementUrl' && !finalLeaderStatementUrl) finalLeaderStatementUrl = docUrl;
+          if (doc.targetFieldKey === 'conflictOfInterestUrl' && !finalConflictOfInterestUrl) finalConflictOfInterestUrl = docUrl;
+          if (doc.targetFieldKey === 'informedConsentUrl' && !finalInformedConsentUrl) finalInformedConsentUrl = docUrl;
+          if (doc.targetFieldKey === 'researchInstrumentUrl' && !finalResearchInstrumentUrl) finalResearchInstrumentUrl = docUrl;
+          if (doc.targetFieldKey === 'supportingDocumentUrl' && !finalSupportingDocumentUrl) finalSupportingDocumentUrl = docUrl;
+
+          return {
+            id: docId,
+            documentType: doc.documentType,
+            fileName: doc.fileName,
+            filePath: doc.filePath,
+            fileSize: doc.fileSize,
+            mimeType: doc.mimeType,
+            uploadedById: sessionUser.id as string,
+          };
+        });
+
+        // Create application, nested documents, and initial status history in a single atomic database query
+        const application = await prisma.application.create({
+          data: {
+            applicationNumber,
+            title: title.trim(),
+            researchType: typeof researchType === 'string' ? researchType : null,
+            status: 'SUBMITTED',
+            researcherId: sessionUser.id as string,
+            secretariatDeadline,
+            panelType,
+            proposerName: proposerName.trim(),
+            institution: institution.trim(),
+            proposalUrl: finalProposalUrl,
+            saintekFormUrl: panelType === 'SAINTEK' ? finalSaintekFormUrl : null,
+            soshumFormUrl: panelType === 'SOSHUM' ? finalSoshumFormUrl : null,
+            leaderStatementUrl: finalLeaderStatementUrl,
+            conflictOfInterestUrl: finalConflictOfInterestUrl,
+            informedConsentUrl: finalInformedConsentUrl,
+            researchInstrumentUrl: panelType === 'SOSHUM' ? finalResearchInstrumentUrl : null,
+            supportingDocumentUrl: finalSupportingDocumentUrl,
+            documents: {
+              create: docsToCreate,
             },
-          });
-
-          const createdDocs = await Promise.all(
-            savedDocuments.map((doc) =>
-              tx.document.create({
-                data: {
-                  applicationId: created.id,
-                  documentType: doc.documentType,
-                  fileName: doc.fileName,
-                  filePath: doc.filePath,
-                  fileSize: doc.fileSize,
-                  mimeType: doc.mimeType,
-                  uploadedById: sessionUser.id as string,
-                },
-              }),
-            ),
-          );
-
-          // If any URL field was not manually provided, link it to the uploaded document
-          const updates: Partial<Record<PanelUrlField | 'supportingDocumentUrl', string>> = {};
-          for (let i = 0; i < savedDocuments.length; i++) {
-            const item = savedDocuments[i];
-            const doc = createdDocs[i];
-            const fieldKey = item.targetFieldKey as PanelUrlField | 'supportingDocumentUrl';
-            if (fieldKey && !created[fieldKey as keyof typeof created] && !updates[fieldKey]) {
-              const docUrl = item.filePath.startsWith('http://') || item.filePath.startsWith('https://')
-                ? item.filePath
-                : `/api/documents/${doc.id}`;
-              updates[fieldKey] = docUrl;
-            }
-          }
-
-          if (Object.keys(updates).length > 0) {
-            await tx.application.update({
-              where: { id: created.id },
-              data: updates,
-            });
-          }
-
-          await tx.applicationStatusHistory.create({
-            data: {
-              applicationId: created.id,
-              toStatus: 'SUBMITTED',
-              actorId: sessionUser.id as string,
-              deadlineAt: secretariatDeadline,
+            statusHistory: {
+              create: {
+                toStatus: 'SUBMITTED',
+                actorId: sessionUser.id as string,
+                deadlineAt: secretariatDeadline,
+              },
             },
-          });
-
-          return created;
+          },
         });
 
         // Safe recipient email lookup

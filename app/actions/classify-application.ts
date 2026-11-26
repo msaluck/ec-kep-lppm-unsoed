@@ -83,39 +83,42 @@ export async function classifyApplication(
   const nextStatus = TRACK_STATUS[track];
   const reviewDeadline = track === 'EXEMPTED' ? null : addWorkingDays(now, REVIEW_DEADLINE_DAYS);
 
-  await prisma.$transaction(async (tx) => {
-    await tx.application.update({
-      where: { id: application.id },
-      data: {
-        status: nextStatus,
-        track,
-        chairmanId: sessionUser.id,
-        classifiedAt: now,
-        reviewDeadline,
-      },
-    });
-
-    await tx.applicationStatusHistory.create({
-      data: {
-        applicationId: application.id,
-        fromStatus: application.status,
-        toStatus: nextStatus,
-        actorId: sessionUser.id,
-        notes,
-        deadlineAt: reviewDeadline,
-      },
-    });
-
-    if (track === 'EXPEDITED') {
-      await tx.reviewAssignment.createMany({
-        data: reviewers.map((reviewer) => ({
-          applicationId: application.id,
-          reviewerId: reviewer.id,
-          deadline: reviewDeadline,
-        })),
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.application.update({
+        where: { id: application.id },
+        data: {
+          status: nextStatus,
+          track,
+          chairmanId: sessionUser.id,
+          classifiedAt: now,
+          reviewDeadline,
+        },
       });
-    }
-  });
+
+      await tx.applicationStatusHistory.create({
+        data: {
+          applicationId: application.id,
+          fromStatus: application.status,
+          toStatus: nextStatus,
+          actorId: sessionUser.id,
+          notes,
+          deadlineAt: reviewDeadline,
+        },
+      });
+
+      if (track === 'EXPEDITED') {
+        await tx.reviewAssignment.createMany({
+          data: reviewers.map((reviewer) => ({
+            applicationId: application.id,
+            reviewerId: reviewer.id,
+            deadline: reviewDeadline,
+          })),
+        });
+      }
+    },
+    { maxWait: 15000, timeout: 30000 },
+  );
 
   const researcherMessage = {
     EXEMPTED: `Aplikasi Anda (${application.applicationNumber}) diklasifikasikan sebagai EXEMPTED dan akan diproses melalui jalur surat keterangan bebas kaji etik.`,
